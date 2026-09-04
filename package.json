@@ -1,0 +1,26 @@
+{
+  "name": "assignment-system",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage --coverage.provider=v8 --coverage.include=src/** --coverage.reporter=json --coverage.reporter=text --coverage.thresholds.lines=90 --coverage.thresholds.statements=90 --coverage.thresholds.functions=90 --coverage.thresholds.branches=90"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.11",
+    "oxfmt": "0.66.0",
+    "oxlint": "1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2",
+    "vitest": "4.1.11"
+  }
+}
