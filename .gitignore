@@ -25,3 +25,6 @@ dist-ssr
 
 # Coverage report
 coverage/
+
+# git worktrees created by tooling
+.claude/worktrees/

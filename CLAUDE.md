@@ -1,6 +1,8 @@
-# assignment-system
+# scheduling-solver-demo
 
-生産スケジュール自動作成デモの Web アプリケーション。要件は `docs/requirements.md` にある。
+数理最適化リゾルバーのデモを行う Web アプリケーション。解く対象は生産スケジューリング
+（発注・工程・機械・作業者スキルの制約下での割り当て）である。要件は `docs/requirements.md`
+にある。
 
 構成は vite（`vanilla-ts` テンプレート）+ vitest。ビルド対象は `src/` 配下のみで、
 `index.html` が `/src/main.ts` をエントリとして読み込む。
