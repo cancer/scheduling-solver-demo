@@ -1,21 +1,43 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createInstantiateWasm, loadHighs, prepareHighsWorkerEnvironment } from "./solver-loader";
-import type { HighsLoader, HighsSolver, WorkerHighsLoaderOptions } from "./solver-loader";
+import type {
+  HighsGlobalScopeForHighs,
+  HighsLoader,
+  HighsSolver,
+  WorkerHighsLoaderOptions,
+} from "./solver-loader";
 
 const emptyWasmModule = new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]));
+const importingWasmModule = new WebAssembly.Module(
+  new Uint8Array([
+    0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 127, 2, 13, 1, 3, 101, 110, 118, 5, 118, 97,
+    108, 117, 101, 0, 0, 3, 2, 1, 0, 7, 8, 1, 4, 114, 101, 97, 100, 0, 1, 10, 6, 1, 4, 0, 16, 0, 11,
+  ]),
+);
 
 describe("createInstantiateWasm", () => {
   it("passes the synchronously-created instance and module to the callback without returning the instance", () => {
-    const successCallback = vi.fn();
-    const instantiateWasm = createInstantiateWasm(emptyWasmModule);
+    let callbackCount = 0;
+    let receivedInstance: WebAssembly.Instance | undefined;
+    let receivedModule: WebAssembly.Module | undefined;
+    const successCallback = (instance: WebAssembly.Instance, module: WebAssembly.Module): void => {
+      callbackCount += 1;
+      receivedInstance = instance;
+      receivedModule = module;
+    };
+    const instantiateWasm = createInstantiateWasm(importingWasmModule);
+    const imports = { env: { value: () => 7 } };
 
-    const returnValue = instantiateWasm({}, successCallback);
+    const returnValue = instantiateWasm(imports, successCallback);
 
     expect(returnValue).toBeUndefined();
-    expect(successCallback).toHaveBeenCalledTimes(1);
-    expect(successCallback.mock.calls[0][0]).toBeInstanceOf(WebAssembly.Instance);
-    expect(successCallback.mock.calls[0][1]).toBe(emptyWasmModule);
+    expect(callbackCount).toBe(1);
+    expect(receivedInstance).toBeInstanceOf(WebAssembly.Instance);
+    expect(receivedModule).toBe(importingWasmModule);
+    const read = receivedInstance?.exports.read;
+    expect(read).toEqual(expect.any(Function));
+    expect((read as () => number)()).toBe(7);
   });
 });
 
@@ -29,10 +51,31 @@ describe("loadHighs", () => {
     };
     const preparedEnvironment = prepareHighsWorkerEnvironment({});
 
-    const loadedSolver = await loadHighs(fakeLoader, emptyWasmModule, preparedEnvironment);
+    const loadedSolver = await loadHighs(fakeLoader, importingWasmModule, preparedEnvironment);
 
     expect(loadedSolver).toBe(fakeSolver);
-    expect(receivedOptions?.instantiateWasm).toEqual(expect.any(Function));
+    const instantiateWasm = receivedOptions?.instantiateWasm;
+    expect(instantiateWasm).toEqual(expect.any(Function));
+    if (!instantiateWasm) {
+      throw new Error("instantiateWasm was not passed to the loader");
+    }
+
+    let callbackCount = 0;
+    let receivedInstance: WebAssembly.Instance | undefined;
+    let receivedModule: WebAssembly.Module | undefined;
+    const returnValue = instantiateWasm({ env: { value: () => 11 } }, (instance, module) => {
+      callbackCount += 1;
+      receivedInstance = instance;
+      receivedModule = module;
+    });
+
+    expect(returnValue).toBeUndefined();
+    expect(callbackCount).toBe(1);
+    expect(receivedInstance).toBeInstanceOf(WebAssembly.Instance);
+    expect(receivedModule).toBe(importingWasmModule);
+    const read = receivedInstance?.exports.read;
+    expect(read).toEqual(expect.any(Function));
+    expect((read as () => number)()).toBe(11);
   });
 
   it("does not mutate Node's process version", async () => {
@@ -106,5 +149,20 @@ describe("prepareHighsWorkerEnvironment", () => {
 
     expect(runtimeScope.self.location).toBeUndefined();
     expect(runtimeScope.process.versions.node).toBe("22");
+  });
+
+  it("preserves an existing location and leaves an absent Node version unchanged", () => {
+    const existingLocation = { href: "https://example.test/" };
+    const workerScope: HighsGlobalScopeForHighs = {
+      WorkerGlobalScope: {},
+      self: { location: existingLocation },
+      process: { versions: {} },
+    };
+
+    const preparedEnvironment = prepareHighsWorkerEnvironment(workerScope);
+
+    expect(preparedEnvironment).toEqual({ prepared: true });
+    expect(workerScope.self?.location).toBe(existingLocation);
+    expect(workerScope.process?.versions).toEqual({});
   });
 });

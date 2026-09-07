@@ -33,6 +33,13 @@ describe("generateShiftCandidates", () => {
 
     const candidates = generateShiftCandidates(employee);
 
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ start: 4, length: 8, end: 12 }),
+        expect.objectContaining({ start: 14, length: 8, end: 22 }),
+      ]),
+    );
     expect(
       candidates.every(
         (candidate) =>
@@ -44,6 +51,8 @@ describe("generateShiftCandidates", () => {
           candidate.length <= employee.maxShiftLength,
       ),
     ).toBe(true);
+    expect(candidates.some((candidate) => candidate.start < 4)).toBe(false);
+    expect(candidates.some((candidate) => candidate.end > 22)).toBe(false);
   });
 
   it("creates candidates only for roles the employee can perform", () => {
