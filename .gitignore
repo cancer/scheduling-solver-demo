@@ -31,3 +31,4 @@ coverage/
 
 # git worktrees created by tooling
 .claude/worktrees/
+.claude/test-review/
