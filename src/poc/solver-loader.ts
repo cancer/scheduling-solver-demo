@@ -26,17 +26,25 @@ type NodeCompatibilityScopeForHighs = {
   };
 };
 
-type HighsGlobalScopeForHighs = {
+export type HighsGlobalScopeForHighs = {
   WorkerGlobalScope?: unknown;
   self?: WorkerScopeForHighs;
   process?: NodeCompatibilityScopeForHighs;
 };
 
-export function provideWorkerLocationForHighs(globalScope: HighsGlobalScopeForHighs): void {
+export type PreparedHighsWorkerEnvironment = {
+  readonly prepared: true;
+};
+
+export function prepareHighsWorkerEnvironment(
+  globalScope: HighsGlobalScopeForHighs,
+): PreparedHighsWorkerEnvironment {
+  const preparedEnvironment: PreparedHighsWorkerEnvironment = { prepared: true };
+
   // Node exposes a read-only process.versions.node. Only the Workers global
   // needs the compatibility adjustments below for highs@1.14.2.
   if (!globalScope.WorkerGlobalScope) {
-    return;
+    return preparedEnvironment;
   }
   if (globalScope.self && !globalScope.self.location) {
     // highs@1.14.2 reads self.location.href before invoking instantiateWasm.
@@ -48,6 +56,8 @@ export function provideWorkerLocationForHighs(globalScope: HighsGlobalScopeForHi
     // makes highs@1.14.2 enter its __dirname-based Node branch in workerd.
     globalScope.process.versions.node = undefined;
   }
+
+  return preparedEnvironment;
 }
 
 export function createInstantiateWasm(wasmModule: WebAssembly.Module): InstantiateWasm {
@@ -60,8 +70,11 @@ export function createInstantiateWasm(wasmModule: WebAssembly.Module): Instantia
 export function loadHighs(
   loader: HighsLoader,
   wasmModule: WebAssembly.Module,
+  preparedEnvironment: PreparedHighsWorkerEnvironment,
 ): ReturnType<HighsLoader> {
-  provideWorkerLocationForHighs(globalThis as unknown as HighsGlobalScopeForHighs);
+  // The token proves that the Worker compatibility shim ran before this loader call.
+  // Keep preparation at the caller so this ordering is visible at every call site.
+  void preparedEnvironment;
   const options: WorkerHighsLoaderOptions = {
     instantiateWasm: createInstantiateWasm(wasmModule),
   };
