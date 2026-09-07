@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "scheduling-solver-highs-poc",
+  "main": "src/poc/worker.ts",
+  "compatibility_date": "2026-09-07",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": false,
+    },
+  ],
+}

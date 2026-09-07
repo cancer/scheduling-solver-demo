@@ -26,5 +26,8 @@ dist-ssr
 # Coverage report
 coverage/
 
+# Wrangler local development state
+.wrangler/
+
 # git worktrees created by tooling
 .claude/worktrees/
