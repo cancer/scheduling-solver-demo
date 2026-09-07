@@ -100,8 +100,8 @@
 - API は SvelteKit の `+server.ts` で実装し、D1 はプラットフォームバインディング経由で扱う。
 - 主ソルバーは npm `highs` のHiGHS WASMビルド（1.14.x、LGPL）とする。入力形式は LP/MPS テキストとする。Worker 上で実行する。
 - Workers は Paid プランで動かす。Free プランの CPU 時間上限（1 リクエスト 10 ms）では約 3,000 変数の MILP の求解が収まらないためである。
-- `highs` を Worker で動かせない場合の退避先は `yalps`（pure TypeScript、MIT）とする。
-- `glpk.js` は GPL-3.0 のため配布物への伝播を理由に採用候補から除外する。`javascript-lp-solver` は候補として調査されたが、主ソルバーには選ばない。OR-Tools CP-SAT の公式 WASM ビルドは無い。
+- ソルバーは `highs` の一本とし、退避先を置かない。`highs` を Worker で動かせない場合は、別のソルバーへ切り替えるのではなく、実行基盤とモデルの前提を含めて計画を組み直す。
+- `glpk.js` は GPL-3.0 のため配布物への伝播を理由に採用候補から除外する。`yalps`（pure TypeScript、MIT）と `javascript-lp-solver` は候補として調査したが、いずれも採用しない。`yalps` の入力は JavaScript オブジェクトで LP/MPS テキストを受け付けず、整数変数の想定規模も数百程度であるため、本デモの規模と入力形式の双方に合わない。OR-Tools CP-SAT の公式 WASM ビルドは無い。
 - 認証・認可の仕組みは置かないため、公開環境でも誰でも読み書きできる前提を引き継ぐ。
 
 ## デモの既定値を定める
