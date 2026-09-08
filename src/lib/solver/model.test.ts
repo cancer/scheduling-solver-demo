@@ -1,13 +1,39 @@
 import { describe, expect, it } from "vitest";
 
-import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
-import type { Employee } from "$lib/domain/shift";
+import { MAX_SHIFT_LENGTH, MIN_SHIFT_LENGTH, ROLES, SLOT_COUNT } from "../domain/shift";
+import type { Employee, SlotRequirements } from "../domain/shift";
+import type { StoredAssignment } from "../domain/day";
 
-import { createUpperBoundFixture } from "./fixture";
-import { buildLpModel, calculatePenaltyM } from "./lp";
-import type { ScheduleFixture } from "./types";
+import { buildLpModel, calculatePenaltyM } from "./model";
+import type { SolveInput } from "./model";
 
-const smallFixture: ScheduleFixture = {
+// 6,120 変数の巨大な LP を作る入力。10人 × 全4役割 × 終日出勤可能というアッパーバウンド
+// フィクスチャ（もとは `src/poc/fixture.ts` の `createUpperBoundFixture`）を、`src/poc` へ
+// 依存させずに再現する。
+function createUpperBoundInput(): SolveInput {
+  const employees = Array.from({ length: 10 }, (_, index) => ({
+    id: `employee-${String(index + 1).padStart(2, "0")}`,
+    name: `従業員${String(index + 1).padStart(2, "0")}`,
+    roles: [...ROLES],
+    availability: { start: 0, end: SLOT_COUNT },
+    minShiftLength: MIN_SHIFT_LENGTH,
+    maxShiftLength: MAX_SHIFT_LENGTH,
+  }));
+
+  const requirements: SlotRequirements[] = Array.from({ length: SLOT_COUNT }, (_, slot) => {
+    const minimum = slot === 13 || slot === 14 ? 2 : 1;
+    return { hall: minimum, hot: minimum, cold: minimum, dishwashing: minimum };
+  });
+
+  return { employees, requirements, pinnedAssignments: [] };
+}
+
+// このモデルはテストごとに作り直さず1度だけ構築する。6,120変数のLPテキスト組み立ては
+// 重く、`it` の中で毎回呼ぶとその分だけ各テストの実行時間に乗ってしまう
+// （移設前は `src/poc/lp.test.ts` の一部が閾値1,000msを超えるslow testとして検出されていた）。
+const upperBoundModel = buildLpModel(createUpperBoundInput());
+
+const smallInput: SolveInput = {
   employees: [
     {
       id: "alpha",
@@ -32,6 +58,7 @@ const smallFixture: ScheduleFixture = {
     cold: 0,
     dishwashing: 0,
   })),
+  pinnedAssignments: [],
 };
 
 function sectionLines(lpText: string, section: string, nextSection: string): string[] {
@@ -117,45 +144,45 @@ describe("calculatePenaltyM", () => {
 
 describe("buildLpModel", () => {
   it("creates 6120 binary variables for the upper-bound fixture", () => {
-    const model = buildLpModel(createUpperBoundFixture());
-
-    expect(model.candidates).toHaveLength(6120);
-    expect(model.binaryVariableNames).toHaveLength(6120);
+    expect(upperBoundModel.candidates).toHaveLength(6120);
+    expect(upperBoundModel.binaryVariableNames).toHaveLength(6120);
   });
 
   it("creates one shortage variable and coverage constraint for every slot and role", () => {
-    const model = buildLpModel(createUpperBoundFixture());
-
-    expect(model.shortageVariables).toHaveLength(SLOT_COUNT * ROLES.length);
-    for (const shortage of model.shortageVariables) {
-      expect(model.lpText).toContain(`${shortage.name}:`);
+    expect(upperBoundModel.shortageVariables).toHaveLength(SLOT_COUNT * ROLES.length);
+    for (const shortage of upperBoundModel.shortageVariables) {
+      expect(upperBoundModel.lpText).toContain(`${shortage.name}:`);
     }
   });
 
   it("emits one-shift-at-most constraints for every employee", () => {
-    const model = buildLpModel(createUpperBoundFixture());
-
-    expect(model.lpText.match(/employee_[^\n]+_one_shift:/g)).toHaveLength(10);
-    expect(model.lpText).toContain("<= 1");
+    // `String#match` with an unanchored `[^\n]+` regex over this ~2.5MB lpText took over
+    // 800ms by itself (measured directly, independent of buildLpModel) and was flagged as a
+    // slow test (>1,000ms) before the move to `src/lib/solver`. `split` + `includes` finds the
+    // same 10 lines in ~1ms.
+    const oneShiftLines = upperBoundModel.lpText
+      .split("\n")
+      .filter((line) => line.includes("_one_shift:"));
+    expect(oneShiftLines).toHaveLength(10);
+    expect(upperBoundModel.lpText).toContain("<= 1");
   });
 
   it("uses M=161 and gives shortage variables the primary objective weight", () => {
-    const fixture = createUpperBoundFixture();
-    const model = buildLpModel(fixture);
+    const input = createUpperBoundInput();
 
-    expect(calculatePenaltyM(fixture.employees)).toBe(161);
-    expect(model.penaltyM).toBe(161);
-    expect(model.lpText).toContain(`161 ${model.shortageVariables[0].name}`);
+    expect(calculatePenaltyM(input.employees)).toBe(161);
+    expect(upperBoundModel.penaltyM).toBe(161);
+    expect(upperBoundModel.lpText).toContain(`161 ${upperBoundModel.shortageVariables[0].name}`);
   });
 
   it("keeps LP text deterministic for the same input", () => {
-    const fixture = createUpperBoundFixture();
+    const input = createUpperBoundInput();
 
-    expect(buildLpModel(fixture).lpText).toBe(buildLpModel(fixture).lpText);
+    expect(buildLpModel(input).lpText).toBe(buildLpModel(input).lpText);
   });
 
   it("encodes employee ownership, coverage, objective, and variable domains", () => {
-    const model = buildLpModel(smallFixture);
+    const model = buildLpModel(smallInput);
     const alphaCandidates = model.candidates.filter(
       (candidate) => candidate.employeeId === "alpha",
     );
@@ -200,7 +227,7 @@ describe("buildLpModel", () => {
       expect(constraint).toEqual({
         terms: [...coveringCandidates, shortage.name],
         operator: ">=",
-        rhs: smallFixture.requirements[shortage.slot][shortage.role],
+        rhs: smallInput.requirements[shortage.slot][shortage.role],
       });
     }
 
@@ -222,13 +249,12 @@ describe("buildLpModel", () => {
   });
 
   it("declares binary assignment variables and nonnegative shortage variables", () => {
-    const model = buildLpModel(createUpperBoundFixture());
-    const assignmentName = model.binaryVariableNames[0];
-    const shortageName = model.shortageVariables[0].name;
+    const assignmentName = upperBoundModel.binaryVariableNames[0];
+    const shortageName = upperBoundModel.shortageVariables[0].name;
 
-    expect(model.lpText).toContain("Binaries");
-    expect(model.lpText).toContain(`  ${assignmentName}`);
-    expect(model.lpText).toContain(`  0 <= ${shortageName}`);
+    expect(upperBoundModel.lpText).toContain("Binaries");
+    expect(upperBoundModel.lpText).toContain(`  ${assignmentName}`);
+    expect(upperBoundModel.lpText).toContain(`  0 <= ${shortageName}`);
   });
 
   it("emits a valid empty one-shift expression for an unavailable employee", () => {
@@ -238,7 +264,7 @@ describe("buildLpModel", () => {
       cold: 0,
       dishwashing: 0,
     }));
-    const fixture: ScheduleFixture = {
+    const input: SolveInput = {
       employees: [
         {
           id: "",
@@ -249,8 +275,47 @@ describe("buildLpModel", () => {
         },
       ],
       requirements,
+      pinnedAssignments: [],
     };
 
-    expect(buildLpModel(fixture).lpText).toContain("employee_employee_one_shift: 0 <= 1");
+    expect(buildLpModel(input).lpText).toContain("employee_employee_one_shift: 0 <= 1");
+  });
+});
+
+describe("buildLpModel pinned assignments", () => {
+  it("fixes the pinned assignment's variable to 1 in Bounds", () => {
+    const pinned: StoredAssignment = { employeeId: "alpha", role: "hall", start: 1, length: 2 };
+    const input: SolveInput = { ...smallInput, pinnedAssignments: [pinned] };
+
+    const model = buildLpModel(input);
+
+    const bounds = sectionLines(model.lpText, "Bounds", "Binaries");
+    expect(bounds).toContain("x_alpha_hall_s01_l02 = 1");
+  });
+
+  it("fixes every pinned assignment when there are several", () => {
+    const pinnedAlpha: StoredAssignment = {
+      employeeId: "alpha",
+      role: "hall",
+      start: 1,
+      length: 2,
+    };
+    const pinnedBeta: StoredAssignment = { employeeId: "beta", role: "hot", start: 0, length: 2 };
+    const input: SolveInput = {
+      ...smallInput,
+      pinnedAssignments: [pinnedAlpha, pinnedBeta],
+    };
+
+    const model = buildLpModel(input);
+
+    const bounds = sectionLines(model.lpText, "Bounds", "Binaries");
+    expect(bounds).toContain("x_alpha_hall_s01_l02 = 1");
+    expect(bounds).toContain("x_beta_hot_s00_l02 = 1");
+  });
+
+  it("does not fix any variable when there are no pinned assignments", () => {
+    const model = buildLpModel(smallInput);
+
+    expect(model.lpText).not.toContain(" = 1");
   });
 });

@@ -1,6 +1,7 @@
-import { loadHighs, prepareHighsWorkerEnvironment } from "./solver-loader";
+import { loadHighs, prepareHighsWorkerEnvironment } from "$lib/solver/solver-loader";
+import type { HighsGlobalScopeForHighs, HighsLoader } from "$lib/solver/solver-loader";
+
 import { createWorkerHandler } from "./worker-handler";
-import type { HighsGlobalScopeForHighs, HighsLoader } from "./solver-loader";
 
 export function createWorkerApp(
   loader: HighsLoader,
