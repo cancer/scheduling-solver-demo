@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import * as solverLoader from "./solver-loader";
-import * as lp from "./lp";
+import * as solverLoader from "$lib/solver/solver-loader";
+import * as model from "$lib/solver/model";
+import type { HighsLoader, HighsSolver, HighsSolution } from "$lib/solver/solver-loader";
+
 import { createWorkerHandler } from "./worker-handler";
 import { createWorkerApp } from "./worker-app";
-import type { HighsLoader, HighsSolver, HighsSolution } from "./solver-loader";
 import type { ScheduleFixture } from "./types";
 
 const optimalWithoutAssignments: HighsSolution = {
@@ -296,7 +297,7 @@ describe("createWorkerHandler", () => {
 
   it("initializes the loader and builds the LP for every GET", async () => {
     let loaderCallCount = 0;
-    const buildModelSpy = vi.spyOn(lp, "buildLpModel");
+    const buildModelSpy = vi.spyOn(model, "buildLpModel");
     const fakeSolver: HighsSolver = {
       solve: () => optimalWithoutAssignments,
     };

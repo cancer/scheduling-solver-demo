@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
-import type { Employee } from "$lib/domain/shift";
+import { ROLES, SLOT_COUNT } from "../domain/shift";
+import type { Employee } from "../domain/shift";
 
 import { generateShiftCandidates } from "./patterns";
 
