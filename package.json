@@ -14,7 +14,10 @@
     "format:check": "oxfmt --check",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "coverage": "vitest run --coverage --coverage.provider=istanbul --coverage.include=src/** --coverage.exclude=src/app.html --coverage.reporter=json --coverage.reporter=text --coverage.thresholds.lines=90 --coverage.thresholds.statements=90 --coverage.thresholds.functions=90 --coverage.thresholds.branches=90"
+    "coverage": "vitest run --coverage --coverage.provider=istanbul --coverage.include=src/** --coverage.exclude=src/app.html --coverage.reporter=json --coverage.reporter=text --coverage.thresholds.lines=90 --coverage.thresholds.statements=90 --coverage.thresholds.functions=90 --coverage.thresholds.branches=90",
+    "db:migrate:local": "wrangler d1 migrations apply scheduling-solver-demo --local -c wrangler.jsonc",
+    "db:migrate:remote": "wrangler d1 migrations apply scheduling-solver-demo --remote -c wrangler.jsonc",
+    "deploy": "npm run build && wrangler deploy -c wrangler.jsonc"
   },
   "dependencies": {
     "highs": "1.14.2"
