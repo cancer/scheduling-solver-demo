@@ -4,7 +4,7 @@ import Page from "./+page.svelte";
 import type { ApiClient } from "$lib/api/client";
 import type { StoredEmployee } from "$lib/api/types";
 import type { DayData, StoredSolution } from "$lib/domain/day";
-import { emptyRequirements } from "$lib/heatmap";
+import { emptyRequirements } from "$lib/domain/shift";
 
 const alice: StoredEmployee = {
   id: "e1",

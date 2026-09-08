@@ -7,17 +7,7 @@ import {
   setRequirement,
   slotStartLabel,
 } from "./heatmap";
-import { ROLES, SLOT_COUNT } from "./domain/shift";
-import type { SlotRequirements } from "./domain/shift";
-
-function emptyRequirements(): SlotRequirements[] {
-  return Array.from({ length: SLOT_COUNT }, () => ({
-    hall: 0,
-    hot: 0,
-    cold: 0,
-    dishwashing: 0,
-  }));
-}
+import { emptyRequirements, ROLES, SLOT_COUNT } from "./domain/shift";
 
 describe("slotStartLabel", () => {
   it("labels slot 0 as the opening time", () => {

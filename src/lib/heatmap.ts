@@ -1,4 +1,3 @@
-import { SLOT_COUNT } from "./domain/shift";
 import type { Role, SlotRequirements } from "./domain/shift";
 
 // 必要人数ヒートマップ（決定17）が使う純関数群。`.svelte` にロジックを書かず
@@ -72,14 +71,4 @@ export function setRequirement(
   return requirements.map((requirement, index) =>
     index === slot ? { ...requirement, [role]: clampCount(count) } : requirement,
   );
-}
-
-/** 空（すべて0）の必要人数配列を作る。新しい日付の初期状態に使う。 */
-export function emptyRequirements(): readonly SlotRequirements[] {
-  return Array.from({ length: SLOT_COUNT }, () => ({
-    hall: 0,
-    hot: 0,
-    cold: 0,
-    dishwashing: 0,
-  }));
 }

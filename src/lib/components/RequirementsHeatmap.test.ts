@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import RequirementsHeatmap from "./RequirementsHeatmap.svelte";
-import { emptyRequirements } from "../heatmap";
+import { emptyRequirements } from "../domain/shift";
 
 describe("RequirementsHeatmap", () => {
   it("does not commit while a drag is in progress, and commits all painted cells together on release", async () => {

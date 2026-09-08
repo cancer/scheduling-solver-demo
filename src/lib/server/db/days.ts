@@ -1,4 +1,4 @@
-import { isRole, ROLES, SLOT_COUNT } from "../../domain/shift";
+import { emptyRequirements, isRole, ROLES, SLOT_COUNT } from "../../domain/shift";
 import type { SlotRequirements } from "../../domain/shift";
 import type {
   DayAvailability,
@@ -27,10 +27,6 @@ type DayRow = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function emptyRequirements(): readonly SlotRequirements[] {
-  return Array.from({ length: SLOT_COUNT }, () => ({ hall: 0, hot: 0, cold: 0, dishwashing: 0 }));
 }
 
 function isSlotRequirements(value: unknown): value is SlotRequirements {
