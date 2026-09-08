@@ -2,7 +2,7 @@
   import { ROLES } from "$lib/domain/shift";
   import type { StoredAssignment, StoredSolution } from "$lib/domain/day";
   import type { StoredEmployee } from "$lib/api/types";
-  import { heatColor } from "$lib/heatmap";
+  import { heatColor, roleLabel } from "$lib/heatmap";
   import { isPinned } from "$lib/pinning";
   import { assignmentLabel, buildShortageGrid, shortageAriaLabel } from "$lib/schedule";
 
@@ -53,7 +53,7 @@
         <div class="time-header">{slot}</div>
       {/each}
       {#each ROLES as role (role)}
-        <div class="role-header">{role}</div>
+        <div class="role-header">{roleLabel(role)}</div>
         {#each shortageGrid as slotShortage, slot (slot)}
           <div
             class="shortage-cell"
