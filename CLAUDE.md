@@ -48,17 +48,26 @@
 
 ## src/ の現状
 
-- `src/placeholder.test.ts` は環境が動いていることを示すための足場である。最初の実装を書く時点で
-  削除するか、実際の振る舞いを検証するテストへ差し替える
-- `src/main.ts` は `export {};` の1行だけを持つ。`index.html` の
-  `<script type="module" src="/src/main.ts">` が指す先なので、消すと `npm run dev` が壊れる。
-  空ファイルにもできない（oxlint の `unicorn(no-empty-file)` が `Empty files are not allowed` で
-  lint を落とす）。最初の実装で中身を書く。この1行に対して oxlint が
-  `unicorn(require-module-specifiers)` の warning を出すが、warning なので `npm run lint` は
-  exit 0 のままである。最初の実装で中身を書けば消える
+- `src/placeholder.test.ts` は削除済みで、`src/poc/` に勤務候補生成、LP生成、HiGHS loader、解の読み戻し、
+  レスポンス整形、Worker handler、テストを置いている。`src/main.ts` は `export {};` の1行を維持する。
+  `index.html` の `<script type="module" src="/src/main.ts">` が指す先なので、消すと `npm run dev` が壊れる。
+  空ファイルにもできない（oxlint の `unicorn(no-empty-file)` が `Empty files are not allowed` で lint を落とす）。
 - vite テンプレート由来の実装（`counter.ts` / `style.css` / `src/assets/` / `public/icons.svg`）は
   削除済みである。DOM を触る実装を残さないことで、カバレッジ閾値を満たすための jsdom 等の
   DOM 環境が不要になっている。DOM を扱う実装を書く段階で、テスト環境の追加を判断する
+
+`src/poc/` は SvelteKit 導入前に、Cloudflare Workers 上で HiGHS WASM を動かせるか測る PoC である。
+Worker のエントリは `wrangler.poc.jsonc` の `main` である `src/poc/worker.ts` とし、ローカル実行と
+デプロイは次で行う。
+
+```sh
+npx wrangler dev -c ./wrangler.poc.jsonc
+npx wrangler deploy -c ./wrangler.poc.jsonc
+```
+
+Worker エントリは静的 `.wasm` import と `instantiateWasm` フックの配線だけに保つ。Node の Vitest では
+workerd 上の実 WASM 経路を実行しないため、このエントリの数行はカバレッジで未到達になり得る。テスト可能な
+ロジックを `src/poc/` の依存注入された純粋なモジュールへ出し、未到達面積を小さくする設計意図である。
 
 ## テストの置き場所
 
