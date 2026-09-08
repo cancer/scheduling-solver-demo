@@ -176,11 +176,18 @@ HTML を JS として解析しようとして構文エラーで落ちる。`.sve
 
 ## src/ の現状
 
-- `src/routes/+page.svelte`: 最小のトップページ。`src/lib/components/Counter.svelte` を配置する。
+- `src/routes/+page.svelte`: 管理者画面の入口（工程5）。状態の保持とイベント配線だけを持ち、
+  ロジックは `src/lib` の純関数と `src/lib/api/client.ts`（API クライアント）へ寄せる（決定5）。
   テストは `src/routes/page.test.ts`（`+page.test.ts` にできない理由は前述）。
-- `src/lib/components/Counter.svelte`: 動作確認用の最小コンポーネント。ロジックは
-  `src/lib` へ寄せる方針の暫定的な置き場であり、実装が進んだら実データを扱うコンポーネントへ
-  差し替わる。
+- `src/lib/components/`: 画面の各部品（`EmployeeManager.svelte` 従業員管理、
+  `RequirementsHeatmap.svelte` 必要人数ヒートマップ、`AvailabilityEditor.svelte` 出勤可能
+  時間帯入力、`ScheduleBoard.svelte` シフト表・不足人数表示）。いずれも表示とイベント配線
+  だけを持ち、ロジックは `src/lib` 直下の純関数（`heatmap.ts` / `employees.ts` /
+  `availability.ts` / `schedule.ts` / `pinning.ts` / `debounce.ts` / `date.ts`）に置く。
+- `src/lib/api/client.ts`: `src/routes/api/`（工程4、並行実装）を呼ぶ薄いクライアント。
+  HTTP 呼び出しをこの1モジュールに閉じ込め、`fetch` を注入可能にしている
+  （`src/lib/api/types.ts` に `StoredEmployee` の画面側の型を独立定義。理由は
+  `$lib/server/*` をクライアントコードから import できないため）。
 - `src/routes/api/health/+server.ts`: workers プロジェクトを成立させるための最小 API。
 - `src/lib/domain/`: ドメインの型・定数。`shift.ts` に役割・従業員・出勤可能時間帯・必要人数
   （`SLOT_COUNT` / `MIN_SHIFT_LENGTH` / `MAX_SHIFT_LENGTH` / `ROLES` / `Role` / `Availability` /
