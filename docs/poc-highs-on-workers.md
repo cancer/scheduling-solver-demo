@@ -80,6 +80,8 @@ Workers には invocation とは別に startup 制限があり、Paid プラン�
 [Workers Trace Events](https://developers.cloudflare.com/logs/logpush/logpush-job/datasets/account/workers_trace_events/)、
 [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/)）。
 
+実測では、ダッシュボードの Workers Logs の代わりに `npx --no-install wrangler tail scheduling-solver-highs-poc --format json` を実行し、出力される Trace Events から `cpuTime`・`wallTime`・`outcome` を読んだ。ダッシュボードの invocation log と `wrangler tail` の Trace Events は同じ invocation の CPU 時間と outcome を示す情報源であり、どちらを使ってもこの後の判定条件に対して同等である。
+
 判定は次のとおりとする。
 
 - 合格: HTTP **200**、JSON の `status` が厳密に `Optimal`、model metadata が
@@ -111,11 +113,51 @@ No loader is configured for ".wasm" files: node_modules/highs/build/highs.wasm
 
 ## 測定結果
 
-本リポジトリの担当範囲ではデプロイと本番測定を行っていない。値は推測で埋めない。
+### デプロイ
 
-| 項目                                                   | 結果   |
-| ------------------------------------------------------ | ------ |
-| `instantiateWasm` フック経由で loader を初期化できたか | 未測定 |
-| 約6,120変数規模のダミー MILP から解が返ったか          | 未測定 |
-| Workers Logs で読んだ CPU 時間（ms）                   | 未測定 |
-| 実行の `outcome`                                       | 未測定 |
+- コマンド: `npx --no-install wrangler deploy -c ./wrangler.poc.jsonc`
+- アカウント: PixelGrid（`04a649f869da1c6edf428dc640eae681`）
+- Worker 名: `scheduling-solver-highs-poc`
+- URL: `https://scheduling-solver-highs-poc.pxgrid.workers.dev`
+- Version ID: `99e74b13-bf64-48de-b402-8e5473a88664`
+- 測定対象コミット: `59d5443`
+- 測定日: 2026-09-08（UTC）
+- Total Upload: 3132.43 KiB / gzip: 1073.23 KiB
+- Worker Startup Time: 17 ms（同一バンドルの別アップロードでは 21 ms）
+
+### 求解リクエストのレスポンス（全5回とも同一）
+
+- HTTP 200
+- `status`: `Optimal`
+- `objectiveValue`: 120
+- `assignments`: 8件
+- `shortages`: 112件
+- `model`: `{"binaryVariableCount":6120,"shortageVariableCount":112,"penaltyM":161}`
+
+### CPU 時間と outcome
+
+`npx --no-install wrangler tail scheduling-solver-highs-poc --format json` の Trace Events から読んだ値。
+
+| 回  | cpuTime | wallTime | outcome |
+| --- | ------- | -------- | ------- |
+| 1   | 1382 ms | 1480 ms  | ok      |
+| 2   | 2442 ms | 2619 ms  | ok      |
+| 3   | 1612 ms | 1705 ms  | ok      |
+| 4   | 1063 ms | 1095 ms  | ok      |
+| 5   | 1379 ms | 1418 ms  | ok      |
+
+### 測定結果の要約
+
+| 項目                                                   | 結果                                                     |
+| ------------------------------------------------------ | -------------------------------------------------------- |
+| `instantiateWasm` フック経由で loader を初期化できたか | できた（5回とも成功）                                    |
+| 約6,120変数規模のダミー MILP から解が返ったか          | 返った（5回とも `status: Optimal`、model metadata 一致） |
+| Workers Logs で読んだ CPU 時間（ms）                   | 上表参照（最小 1,063 ms・最大 2,442 ms）                 |
+| 実行の `outcome`                                       | 5回とも `ok`                                             |
+
+### 判定
+
+- 絶対ライン（CPU 時間 30,000 ms 以下）: 合格。最大 2,442 ms で上限の約8%。
+- HTTP 200・`status: Optimal`・model metadata 一致・`outcome: ok` のすべてを5回とも満たす。
+- 目標ライン（CPU 時間 1,000 ms 以下）: 5サンプルすべて未達。最小 1,063 ms。
+- したがって、動作上は合格だが目標未達として記録する。
