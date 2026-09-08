@@ -279,6 +279,27 @@ import で書かれており、実行環境で動作も確認したため、本�
 `svelte-check` が `apply-migrations.ts` の `cloudflare:test` import を解決できず
 `typecheck` が落ちる。追加済みである。
 
+### 実測事実: `setupFiles` 経由で読み込まれるファイルはカバレッジの分母に載らない
+
+`src/lib/server/db/apply-migrations.ts` は実行文を1つ持つ実体のあるファイルだが、
+`npm run coverage` が出す `coverage/coverage-final.json` に登場しない
+（キー自体が無い。低カバレッジとして出るのではない）。同じ workers プロジェクト
+（workerd 環境）で実行される `days.ts` / `employees.ts` / `reset.ts` / `seed.ts` は
+計装されて `coverage-final.json` に含まれるため、「workerd 環境だから計装されない」
+という単純な話ではない。`apply-migrations.ts` が他と違う点は、通常のテストファイルの
+import グラフ経由ではなく、`vitest.config.workers.ts` の `test.setupFiles` として
+読み込まれていることである。
+
+**この事実の原因（istanbul provider が `setupFiles` を計装しない、
+`@cloudflare/vitest-plugin` が `setupFiles` を通常と別経路で読み込んでいる、等）は
+未確認である。** 原因を推測で書かない。
+
+実務上の含意: `--coverage.include=src/**` を外していなくても、`setupFiles` として
+読み込まれるファイルは閾値90の分母に入らない。**今後このディレクトリへ分岐を持つ
+`setupFiles` を追加する場合、その分岐は閾値では検出されない。** 分岐を持たせる場合は
+分岐を含むロジックを `setupFiles` 本体ではなく通常の（テストから import される）
+モジュールへ出し、`setupFiles` 側は薄く保つこと。
+
 ### D1 の制限値（実行環境公式ドキュメントで確認済み）
 
 出典: <https://developers.cloudflare.com/d1/platform/limits/>
