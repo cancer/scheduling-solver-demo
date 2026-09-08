@@ -12,11 +12,16 @@ function emptyRequirements() {
 
 // 工程3（`$lib/solver`）はまだ無いので、テストでは fake の ScheduleSolver を注入する
 // （契約: 「ScheduleSolver を引数で受け取ってテストでは fake を渡してください」）。
+// `solve` は Promise を返す（契約訂正: wasm ロードを伴うため非同期）。
 function makeFakeSolver(solution: unknown) {
-  return { solve: () => solution };
+  return { solve: () => Promise.resolve(solution) };
 }
 
-function makeEvent(date: string, request: Request, scheduleSolver: { solve: () => unknown }) {
+function makeEvent(
+  date: string,
+  request: Request,
+  scheduleSolver: { solve: () => Promise<unknown> },
+) {
   return {
     params: { date },
     request,

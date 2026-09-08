@@ -12,6 +12,9 @@ import type { RequestHandler } from "./$types";
 // 照合も持たないため、後発の求解が先発を追い越して先に保存された場合、
 // 先発の求解が後から完了すると先発の古い結果で新しい結果を上書きしうる。
 // これは沈黙ではなく「対処しない」という決定であり、実装漏れではない。
+//
+// `solve()` 自体は Promise を返す（wasm ロードを伴うため）が、HTTP レスポンスは
+// その結果を待ってから同期で返す（決定19。ジョブ受付にしない。202 を返さない）。
 export const POST: RequestHandler = ({ params, request, locals, platform }) =>
   withErrorHandling(async () => {
     const date = parseDateParam(params.date);
@@ -26,7 +29,7 @@ export const POST: RequestHandler = ({ params, request, locals, platform }) =>
     const employees = await listEmployees(db);
 
     const solveInput = buildSolveInput({ employees, day, pinnedAssignments });
-    const solution = locals.scheduleSolver.solve(solveInput);
+    const solution = await locals.scheduleSolver.solve(solveInput);
     const updatedDay = applySolution(day, pinnedAssignments, solution);
 
     await saveDay(db, date, updatedDay);
