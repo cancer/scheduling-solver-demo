@@ -19,15 +19,19 @@ SvelteKit の `+server.ts` で実装し、保存には D1 をプラットフォ�
 持たせ、実際の計算・判定ロジックは `src/lib` の純関数に書く。この方針は lint 等で機械的に
 強制できないため、レビューで守る。
 
-## Worker 設定ファイルは2つある
+## Worker 設定ファイルは3つある
 
 - `wrangler.jsonc`（デフォルト名。製品 Worker）: `main` は
   `.svelte-kit/cloudflare/_worker.js`（ビルド生成物）。`npx wrangler dev` /
   `npx wrangler deploy` はこのファイルを既定で読む（`-c` 不要）。
 - `wrangler.poc.jsonc`（PoC。以下参照）: `main` は `src/poc/worker.ts`。呼び出す際は必ず
   `-c ./wrangler.poc.jsonc` を指定する。
+- `wrangler.test.jsonc`（`vitest.config.workers.ts` 専用）: `main` を持たない、
+  `compatibility_date` / `compatibility_flags` だけの設定。理由は「2系統のテスト環境」の
+  workers プロジェクトの節を参照。`wrangler dev` / `wrangler deploy` から直接使うことは
+  想定していない。
 
-2つを混同しない。製品 Worker の `main` に PoC のエントリを指定してはならず、
+3つを混同しない。製品 Worker の `main` に PoC のエントリを指定してはならず、
 `wrangler.poc.jsonc` の `main` を変更してもいけない。
 
 ## 検査コマンド
@@ -60,20 +64,33 @@ Vitest のプロジェクトを2つに分けている（設定は `vitest.config
 - **client**（`vitest.config.client.ts`）: `jsdom` 環境。`.svelte` コンポーネントのテストと、
   workerd を要しない純粋な TypeScript（`src/poc/` を含む）はここで動く。
   `@testing-library/svelte` の `svelteTesting()` プラグインが、jsdom 環境での動作に必要な
-  `resolve.conditions` の `browser` 追加とテスト後の自動クリーンアップを行う。
+  `resolve.conditions` の `browser` 追加とテスト後の自動クリーンアップを行う。SvelteKit 本体の
+  vite プラグイン（`sveltekit()`）は使わず素の `svelte()` だけを使っているため、`$lib`
+  エイリアスは自動解決されない。`.svelte` が `$lib/...` を import するテストのために、
+  `resolve.alias` で `$lib` を `src/lib` へ手動で解決している。
 - **workers**（`vitest.config.workers.ts`）: `@cloudflare/vitest-plugin` の `cloudflareTest()`
   による実 workerd 環境。`+server.ts` と、将来の D1 アクセスのテストはここで動く。Cloudflare
   の Vitest 統合はカスタム `environment` を設定できないため
   （<https://developers.cloudflare.com/workers/testing/vitest-integration/configuration/>
   の "Custom Vitest environments or runners are not supported"）、このプロジェクトには
-  `test.environment` を書かない。
+  `test.environment` を書かない。`wrangler.configPath` には製品用の `wrangler.jsonc` では
+  なく専用の `wrangler.test.jsonc` を渡している。製品側の `main`
+  （`.svelte-kit/cloudflare/_worker.js`）は未ビルド時に存在せず、`cloudflareTest()` が
+  起動のたびにこれを解決しようとして警告を出し続けるため
+  （`Failed to statically analyze the exports of the main Worker entry-point`）、
+  `main` を持たない `wrangler.test.jsonc` に切り離して警告を消した。
+
+**`include` はファイル名 `server.test.ts` にマッチさせているだけで、置き場所は
+`src/routes/` 配下に限らない。** D1 アクセスのテストが `src/lib` 配下に来ても、
+`server.test.ts` という名前であれば workers プロジェクトが拾う。
 
 **`+server.ts` に対応するテストファイルは `+server.test.ts` にできない。** SvelteKit の
 ルートスキャナは `src/routes/` 配下で `+` から始まるファイル名を予約済み規約
 （`+page` / `+layout` / `+server` / `+error` など）として扱い、それ以外だと
 `svelte-kit sync`（`typecheck` が内部で呼ぶ）がエラーで落ちる。そのため `+` を外した
 `server.test.ts` を同じフォルダに置き、`./+server` を import する
-（例: `src/routes/api/health/server.test.ts`）。
+（例: `src/routes/api/health/server.test.ts`）。同じ理由で `+page.svelte` のテストも
+`+page.test.ts` にはできず、`page.test.ts` と命名する（`src/routes/page.test.ts`）。
 
 `.svelte` ファイルの単体テストは、`@testing-library/svelte` の `render` / `screen` /
 `fireEvent` を使う（`@testing-library/user-event` は devDependency に入れていないので、
@@ -113,20 +130,22 @@ via Istanbul instead."）。2プロジェクト構成にした時点で、worker
 
 `coverage.include` / `coverage.exclude` はプロジェクトごとではなく全体で1つだけ有効になる
 （`vitest.config.client.ts` / `vitest.config.workers.ts` の `test.coverage` に書いても
-無視され、CLI 引数の値がそのまま使われることを実測で確認した）。そのため以下の2つを
-`--coverage.exclude` として追加している。
+無視され、CLI 引数の値がそのまま使われることを実測で確認した）。そのため `src/app.html`
+（SvelteKit のテンプレート HTML）だけを `--coverage.exclude` として追加している。
+どのテストからも import されない HTML は vitest の「未カバーファイルの静的解析」パスに乗るが、
+HTML を JS として解析しようとして構文エラーで落ちる。`.svelte` にはこの対処をしていない
+（理由は次項）。
 
-- `src/app.html`: SvelteKit のテンプレート HTML。どのテストからも import されないため
-  vitest の「未カバーファイルの静的解析」パスに乗るが、HTML を JS として解析しようとして
-  構文エラーで落ちる。
-- `src/routes/**/*.svelte`: `+page.svelte` など、どのテストからも import されないルート直下の
-  `.svelte` は、同じ「未カバーファイルの静的解析」パスで svelte プラグインを経由しない
-  変換にかかり、`.svelte` の構文で落ちる（実際に `src/routes/+page.svelte` で発生した）。
-  一方、実際にテストから import される `.svelte`（`src/lib/components/Counter.svelte` 等）は
-  テスト実行時に client プロジェクトの svelte プラグインを通るため問題なく計測できる。この
-  非対称性から、ルート直下の（構造上ユニットテストで直接 render しない）`.svelte` だけを
-  対象外にしている。今後 `src/routes/` 配下の `.svelte` を実際に単体テストするようになった
-  場合、この exclude をそのファイルについて外す必要がある。
+**`.svelte` はどのテストからも import されない状態を作らない。** 「未カバーファイルの
+静的解析」パスは、テストされない `.svelte` を svelte プラグインを経由しない変換にかけて
+構文エラーで落とす（実際に、どのテストからも import していなかった `src/routes/+page.svelte`
+で発生した）。一方、テストから import される `.svelte`（`src/lib/components/Counter.svelte`
+等）はテスト実行時に client プロジェクトの svelte プラグインを通るため問題なく計測できる。
+決定5（`.svelte` をカバレッジの分母に残し、画面側の配線を検証する）を成立させるため、
+`.svelte` を `coverage.exclude` で外すのではなく、**どの `.svelte` にも最低1つは import
+するテストを置く**ことで対処する。`+page.svelte` には `src/routes/page.test.ts` を追加し、
+render して見出しとボタンの存在を確認するテストを置いた。今後 `src/routes/` 配下に増える
+画面の `.svelte` も、同様に最低1つのテストを添える。
 
 ## テストの評価
 
@@ -142,6 +161,7 @@ via Istanbul instead."）。2プロジェクト構成にした時点で、worker
 ## src/ の現状
 
 - `src/routes/+page.svelte`: 最小のトップページ。`src/lib/components/Counter.svelte` を配置する。
+  テストは `src/routes/page.test.ts`（`+page.test.ts` にできない理由は前述）。
 - `src/lib/components/Counter.svelte`: 動作確認用の最小コンポーネント。ロジックは
   `src/lib` へ寄せる方針の暫定的な置き場であり、実装が進んだら実データを扱うコンポーネントへ
   差し替わる。
