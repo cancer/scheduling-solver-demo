@@ -4,27 +4,42 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "vite dev",
+    "build": "vite build",
     "preview": "vite preview",
+    "prepare": "svelte-kit sync",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "coverage": "vitest run --coverage --coverage.provider=v8 --coverage.include=src/** --coverage.reporter=json --coverage.reporter=text --coverage.thresholds.lines=90 --coverage.thresholds.statements=90 --coverage.thresholds.functions=90 --coverage.thresholds.branches=90"
+    "coverage": "vitest run --coverage --coverage.provider=istanbul --coverage.include=src/** --coverage.exclude=src/app.html --coverage.exclude=src/routes/**/*.svelte --coverage.reporter=json --coverage.reporter=text --coverage.thresholds.lines=90 --coverage.thresholds.statements=90 --coverage.thresholds.functions=90 --coverage.thresholds.branches=90"
   },
   "dependencies": {
     "highs": "1.14.2"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.1.11",
+    "@cloudflare/vitest-plugin": "1.1.4",
+    "@cloudflare/workers-types": "5.20260903.1",
+    "@sveltejs/adapter-cloudflare": "7.2.9",
+    "@sveltejs/kit": "2.70.3",
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "@testing-library/svelte": "5.4.2",
+    "@vitest/coverage-istanbul": "4.1.11",
+    "jsdom": "30.0.1",
     "oxfmt": "0.66.0",
     "oxlint": "1.81.0",
+    "svelte": "5.57.0",
+    "svelte-check": "4.7.6",
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
     "vitest": "4.1.11",
     "wrangler": "4.129.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "workerd@1.20260903.1": true
   }
 }
