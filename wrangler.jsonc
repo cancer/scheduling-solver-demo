@@ -8,6 +8,17 @@
     "binding": "ASSETS",
     "directory": ".svelte-kit/cloudflare",
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "scheduling-solver-demo",
+      // 工程6（実際の D1 作成・リモートへのマイグレーション適用）が未着手のため、
+      // `wrangler d1 create` 発行前の仮 ID を置いている。ローカル `wrangler dev` /
+      // `--dry-run` はこの値で成立する（本工程で確認済み）。実デプロイの前には
+      // `wrangler d1 create` の出力する実 ID に差し替える必要がある（工程6の作業）。
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
