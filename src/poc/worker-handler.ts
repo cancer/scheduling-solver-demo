@@ -3,7 +3,17 @@ import { buildLpModel } from "./lp";
 import { formatSolveResponse } from "./response";
 import { solveSchedule } from "./solver";
 import type { HighsSolver } from "./solver-loader";
-import type { ScheduleFixture } from "./types";
+import type { LpModel, ScheduleFixture } from "./types";
+
+type SolverFactory = () => Promise<HighsSolver>;
+
+function logFailure(event: string, cause: unknown): void {
+  const error =
+    cause instanceof Error
+      ? { name: cause.name, message: cause.message, stack: cause.stack }
+      : { message: String(cause) };
+  console.error({ event, error });
+}
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -13,21 +23,39 @@ function jsonResponse(body: unknown, status: number): Response {
 }
 
 export function createWorkerHandler(
-  solverPromise: Promise<HighsSolver>,
+  createSolver: SolverFactory,
   fixture: ScheduleFixture = createUpperBoundFixture(),
 ): (request: Request) => Promise<Response> {
-  const model = buildLpModel(fixture);
-
   return async (request: Request): Promise<Response> => {
     if (request.method !== "GET") {
       return jsonResponse({ error: "GET required" }, 405);
     }
 
+    let model: LpModel;
     try {
-      const solver = await solverPromise;
+      model = buildLpModel(fixture);
+    } catch (cause) {
+      logFailure("model_build_failed", cause);
+      return jsonResponse({ error: "solver_failed" }, 500);
+    }
+
+    let solver: HighsSolver;
+
+    try {
+      solver = await createSolver();
+    } catch (cause) {
+      logFailure("highs_loader_initialization_failed", cause);
+      return jsonResponse({ error: "solver_initialization_failed" }, 500);
+    }
+
+    try {
       const solution = solveSchedule(solver, model);
+      if (solution.status !== "Optimal") {
+        console.warn({ event: "highs_non_optimal_result", status: solution.status });
+      }
       return jsonResponse(formatSolveResponse(solution, model), 200);
-    } catch {
+    } catch (cause) {
+      logFailure("solver_failed", cause);
       return jsonResponse({ error: "solver_failed" }, 500);
     }
   };

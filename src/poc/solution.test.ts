@@ -55,15 +55,24 @@ describe("readScheduleSolution", () => {
     expect(solution.shortages).toHaveLength(112);
   });
 
-  it("rejects a result whose status is not Optimal", () => {
+  it("preserves a non-optimal result status for the caller to report", () => {
     const model = buildLpModel(createUpperBoundFixture());
     const result = {
       Status: "Infeasible",
-      ObjectiveValue: NaN,
+      ObjectiveValue: 0,
       Columns: {},
       Rows: [],
     } as HighsSolution;
 
-    expect(() => readScheduleSolution(model, result)).toThrow("HiGHS returned Infeasible");
+    expect(readScheduleSolution(model, result)).toEqual({
+      status: "Infeasible",
+      objectiveValue: 0,
+      assignments: [],
+      shortages: model.shortageVariables.map((shortage) => ({
+        slot: shortage.slot,
+        role: shortage.role,
+        amount: 0,
+      })),
+    });
   });
 });

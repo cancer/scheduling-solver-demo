@@ -7,10 +7,6 @@ function primalValue(result: HighsSolution, variableName: string): number {
 }
 
 export function readScheduleSolution(model: LpModel, result: HighsSolution): ScheduleSolution {
-  if (result.Status !== "Optimal") {
-    throw new Error(`HiGHS returned ${result.Status}`);
-  }
-
   const assignments = model.candidates
     .filter((candidate) => primalValue(result, candidate.variableName) > 0.5)
     .map((candidate) => ({
