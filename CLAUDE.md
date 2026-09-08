@@ -69,8 +69,8 @@ Vitest のプロジェクトを2つに分けている（設定は `vitest.config
   エイリアスは自動解決されない。`.svelte` が `$lib/...` を import するテストのために、
   `resolve.alias` で `$lib` を `src/lib` へ手動で解決している。
 - **workers**（`vitest.config.workers.ts`）: `@cloudflare/vitest-plugin` の `cloudflareTest()`
-  による実 workerd 環境。`+server.ts` と、将来の D1 アクセスのテストはここで動く。Cloudflare
-  の Vitest 統合はカスタム `environment` を設定できないため
+  による実 workerd 環境。`+server.ts` と D1 アクセス（`src/lib/server/db/`）のテストはここで
+  動く。Cloudflare の Vitest 統合はカスタム `environment` を設定できないため
   （<https://developers.cloudflare.com/workers/testing/vitest-integration/configuration/>
   の "Custom Vitest environments or runners are not supported"）、このプロジェクトには
   `test.environment` を書かない。`wrangler.configPath` には製品用の `wrangler.jsonc` では
@@ -80,17 +80,28 @@ Vitest のプロジェクトを2つに分けている（設定は `vitest.config
   （`Failed to statically analyze the exports of the main Worker entry-point`）、
   `main` を持たない `wrangler.test.jsonc` に切り離して警告を消した。
 
-**`include` はファイル名 `server.test.ts` にマッチさせているだけで、置き場所は
-`src/routes/` 配下に限らない。** D1 アクセスのテストが `src/lib` 配下に来ても、
-`server.test.ts` という名前であれば workers プロジェクトが拾う。
+### テストファイルの命名規約（置き場所で分かれる。工程2で見直し）
 
-**`+server.ts` に対応するテストファイルは `+server.test.ts` にできない。** SvelteKit の
-ルートスキャナは `src/routes/` 配下で `+` から始まるファイル名を予約済み規約
-（`+page` / `+layout` / `+server` / `+error` など）として扱い、それ以外だと
-`svelte-kit sync`（`typecheck` が内部で呼ぶ）がエラーで落ちる。そのため `+` を外した
-`server.test.ts` を同じフォルダに置き、`./+server` を import する
-（例: `src/routes/api/health/server.test.ts`）。同じ理由で `+page.svelte` のテストも
-`+page.test.ts` にはできず、`page.test.ts` と命名する（`src/routes/page.test.ts`）。
+workers プロジェクトの `include` は次の2パターンである（`vitest.config.workers.ts` に実体）。
+
+- **`src/routes/` 配下**: `+server.test.ts` にできない。SvelteKit のルートスキャナは
+  `src/routes/` 配下で `+` から始まるファイル名を予約済み規約
+  （`+page` / `+layout` / `+server` / `+error` など）として扱い、それ以外だと
+  `svelte-kit sync`（`typecheck` が内部で呼ぶ）がエラーで落ちる。そのため `+` を外した
+  `server.test.ts` を同じフォルダに置き、`./+server` を import する
+  （例: `src/routes/api/health/server.test.ts`）。同じ理由で `+page.svelte` のテストも
+  `+page.test.ts` にはできず、`page.test.ts` と命名する（`src/routes/page.test.ts`）。
+  1ルートに `+server.ts` は1つなので、この命名で1ディレクトリ1本の制約があっても困らない。
+- **それ以外（`src/lib` 配下など）**: `+` の制約が無い。当初は `src/routes/` 側と同じ
+  `server.test.ts` 固定にしていたが、D1 アクセス層（`src/lib/server/db/`）のように
+  複数モジュールを同じディレクトリに置く構成では「1ディレクトリに workerd テストを1本しか
+  置けない」という実態に合わない制約になっていた。工程2 で `*.workerd.test.ts` という
+  自然な名前を許可する形に見直し、`src/lib/server/db/employees.workerd.test.ts` のように
+  複数本を並べられるようにした。
+
+`vitest.config.client.ts` の `exclude` もこの2パターンで揃えている。片方だけ変えると
+どちらのプロジェクトにも拾われない（または両方に拾われる）テストファイルができるので、
+`include`（workers）と `exclude`（client）は必ず同じパターンの組で保つこと。
 
 `.svelte` ファイルの単体テストは、`@testing-library/svelte` の `render` / `screen` /
 `fireEvent` を使う（`@testing-library/user-event` は devDependency に入れていないので、
@@ -171,10 +182,117 @@ HTML を JS として解析しようとして構文エラーで落ちる。`.sve
   `src/lib` へ寄せる方針の暫定的な置き場であり、実装が進んだら実データを扱うコンポーネントへ
   差し替わる。
 - `src/routes/api/health/+server.ts`: workers プロジェクトを成立させるための最小 API。
-  D1 スキーマの設計・投入は工程2の範囲であり、ここでは扱わない。
+- `src/lib/domain/`: ドメインの型・定数。`shift.ts` に役割・従業員・出勤可能時間帯・必要人数
+  （`SLOT_COUNT` / `MIN_SHIFT_LENGTH` / `MAX_SHIFT_LENGTH` / `ROLES` / `Role` / `Availability` /
+  `Employee` / `SlotRequirements`）、`day.ts` に日付に属するデータの型（固定割当・求解結果を
+  含む `DayData`）を置く。もとは `src/poc/types.ts` にあったが、D1 スキーマ・seed モジュールも
+  同じ役割集合・コマ数を必要とするため工程2で移設した（定数を2箇所に置くと乖離するため）。
+  `src/poc/` の各モジュールはここを import する（`src/poc/types.ts` には LP/求解結果固有の型
+  だけが残る）。
+- `src/lib/server/db/`: D1 アクセス層。「D1 スキーマと初期化（工程2）」の節を参照。
 - `src/app.html` / `src/app.d.ts`: SvelteKit の規約ファイル。`app.d.ts` の `Platform.env.DB` は
-  D1 バインディングの型で、`@cloudflare/workers-types` の `D1Database` を参照する
-  （実体のスキーマは工程2で決める）。
+  D1 バインディングの型で、`@cloudflare/workers-types` の `D1Database` を参照する。
+
+## D1 スキーマと初期化（工程2）
+
+### バインディング（`DB`）は2ファイルに書く義務がある
+
+D1 バインディング（名前は `DB`。`src/app.d.ts` の `Platform.env.DB` に合わせている）は
+`wrangler.jsonc`（製品）と `wrangler.test.jsonc`（`vitest.config.workers.ts` 専用）の
+**両方**に書く。片方だけだと、テストが製品構成と異なるバインディングを検証することになり、
+「workerd 上のローカル実 D1 に対して検証する」（決定6）の意味が崩れる。**この2ファイルを
+同期させる義務が生じている。** 次にどちらかを触るときは、もう片方も同じ内容になっているか
+確認すること。
+
+`database_id` は両ファイルとも `00000000-0000-0000-0000-000000000000`（プレースホルダー）を
+置いている。工程6（実際の `wrangler d1 create` によるリモート DB 作成）が未着手のため、
+実 ID が無い。`npx wrangler dev` / `npx wrangler deploy --dry-run` はこのプレースホルダーで
+成立することを実行環境で確認した。**実デプロイの前には `wrangler d1 create` が出す実 ID に
+差し替える必要がある**（工程6の作業。本工程では行わない）。
+
+### 物理設計
+
+`migrations/0001_init.sql` に2テーブルを定義する。
+
+- `employees`（日付をまたいで共有する従業員データ）: `roles`（役割集合。最大4要素の
+  ROLES の部分集合）を正規化した中間テーブルにせず、`roles_json`（JSON配列のTEXT）1カラムに
+  持たせている。この段階では「役割 X を持つ従業員を検索する」という roles 単位のクエリが無く、
+  常に従業員1件を丸ごと読み書きするため。値が ROLES の要素であることは SQL の CHECK では
+  表現せず、読み込み側（`src/lib/server/db/employees.ts` の `parseRoles`）で検証し、
+  想定外の値があれば例外を投げる。
+- `shift_days`（日付に属するデータ）: `date`（`'YYYY-MM-DD'` の TEXT）を主キーとし、
+  「1日1枚」の論理単位を1行に対応させる。必要人数・出勤可能時間帯・固定割当・求解結果の
+  4つの内訳を別テーブルへ正規化せず、`requirements_json` / `availability_json` /
+  `pinned_assignments_json` / `solution_json` の4カラムにまとめている。理由は、画面がどの
+  内訳も「その日のデータ」として常に丸ごと読み書きし、特定のコマ・役割・従業員だけを検索する
+  需要がこの段階では無いため。データ量は数KB程度で、D1 の1行あたりの上限
+  （2,000,000 bytes。出典: <https://developers.cloudflare.com/d1/platform/limits/>）に対して
+  十分小さい。`solution_json` は `NULL` 許容で、`NULL` が「未求解」を表す。詳しい理由は
+  `migrations/0001_init.sql` のコメントを参照。
+
+新しい日付の作成（`src/lib/server/db/days.ts` の `createDay`）はテンプレートを適用せず、
+必要人数を全コマ・全役割0、出勤可能時間帯・固定割当を空、求解結果を `NULL` にする。
+既存の日付に対しては何もしない（`INSERT OR IGNORE`。べき等）。
+
+### 初期化（seed）
+
+`src/lib/server/db/seed.ts` が初期データ（従業員8人・固定した3日分の必要人数と出勤可能時間帯）
+の唯一の投入元である（決定9）。具体的な値（従業員名・日付・人数）はこのモジュールだけが持ち、
+`docs/requirements.md` には書かない。必要人数の値は意図的に調整していない（決定11。ピーク帯
+〈ランチ・ディナー〉を2人、開店直後・閉店間際を1人または0人にした素直な値）。3日のうち2日は
+1人ずつ「出勤可能時間帯を入力しない」（＝休み）従業員を変えており、「未入力はその日の休みと
+して扱う」という規則が実際に意味を持つ入力にしている。
+
+`src/lib/server/db/reset.ts` の `resetToSeed` が初期化処理である。`employees` と
+`shift_days` を`DELETE`してから seed の内容を `INSERT`するところまでを1つの `db.batch()`で
+アトミックに行うため、実行前の状態（工程4以降で増える従業員・日付を含む）に関わらず常に
+同じ状態へ戻る（冪等）。求解結果・固定割当を投入する経路が無いため、初期化後は必ず未求解
+になる（決定10）。HTTP エンドポイントとしての公開は工程4の範囲であり、本工程では関数までを
+作る。
+
+### マイグレーションをテスト前に適用する仕組み
+
+`vitest.config.workers.ts` が Node.js 側で `@cloudflare/vitest-plugin` の
+`readD1Migrations(migrationsPath)` を呼び、`migrations/` 配下のマイグレーションを読む。
+読んだ結果は `cloudflareTest()` の `miniflare.bindings` 経由でテスト専用バインディング
+`TEST_MIGRATIONS` として workerd 側へ渡し、`src/lib/server/db/apply-migrations.ts`
+（workers プロジェクトの `setupFiles`）が `cloudflare:test` の
+`applyD1Migrations(env.DB, env.TEST_MIGRATIONS)` で実際に適用する。
+
+**`readD1Migrations` の import 元について、ドキュメント本文と実物が食い違っていた。**
+公式ドキュメント
+（<https://developers.cloudflare.com/workers/testing/vitest-integration/test-apis/>）は
+「`@cloudflare/vitest-plugin/config` パッケージから呼ぶ」と書いているが、インストール済みの
+`@cloudflare/vitest-plugin@1.1.4` の `package.json` の `exports` には `./config` という
+サブパスが無く、`readD1Migrations` はルートの `@cloudflare/vitest-plugin`
+（`dist/pool/index.d.mts`）からエクスポートされている。cloudflare/workers-sdk リポジトリの
+公式サンプル（`fixtures/vitest-plugin-examples/d1/vitest.config.ts`。
+`gh api repos/cloudflare/workers-sdk/contents/...` で取得し内容を確認済み）もルートからの
+import で書かれており、実行環境で動作も確認したため、本プロジェクトはルートからの import を
+採用している。`applyD1Migrations` のシグネチャ（`(db, migrations, migrationsTableName?)`）は
+ドキュメント記載どおりで、インストール済みパッケージの型定義とも一致することを確認した。
+
+`env.DB` / `env.TEST_MIGRATIONS` の型は `src/lib/server/db/env.d.ts` が
+`Cloudflare.Env`（`cloudflare:workers` の `env` / `cloudflare:test` が参照する名前空間）に
+宣言している。`tsconfig.json` の `compilerOptions.types` に
+`@cloudflare/vitest-plugin/types`（`cloudflare:test` の型を提供する）を追加していないと、
+`svelte-check` が `apply-migrations.ts` の `cloudflare:test` import を解決できず
+`typecheck` が落ちる。追加済みである。
+
+### D1 の制限値（実行環境公式ドキュメントで確認済み）
+
+出典: <https://developers.cloudflare.com/d1/platform/limits/>
+
+- 1行あたりの最大サイズ: 2,000,000 bytes（2 MB）
+- 1クエリあたりの最大バインドパラメータ数: 100
+- SQL文の最大長: 100,000 bytes（100 KB）
+- `D1Database.batch()` はトランザクションとして実行される（"Batched statements are SQL
+  transactions. If a statement in the sequence fails, then an error is returned for that
+  specific statement, and it aborts or rolls back the entire sequence."）。`resetToSeed` や
+  `replaceAllEmployees` のアトミック性はこれに基づく。
+
+工程6（実際の `wrangler d1 create` の挙動、リモート D1 の制限の実測、マイグレーションの
+リモート適用）は未確認・未着手である。
 
 `src/poc/` は SvelteKit 導入前に、Cloudflare Workers 上で HiGHS WASM を動かせるか測る PoC で
 あり、SvelteKit 化後も再現用ハーネスとして残している。製品 Worker（`wrangler.jsonc` /
