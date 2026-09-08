@@ -29,4 +29,44 @@ describe("createUpperBoundFixture", () => {
     expect(fixture.requirements[14].hall).toBe(2);
     expect(fixture.requirements[27].hall).toBe(1);
   });
+
+  it("fixes every slot-role requirement in the upper-bound measurement input", () => {
+    const fixture = createUpperBoundFixture();
+    // The measurement input intentionally requires one worker per role in the
+    // ordinary slots and two workers per role in the two central slots. Keeping
+    // all 28 rows and four role values independent from the factory output
+    // makes an accidental change to the measured requirement matrix fail here.
+    const expectedRequirements = [
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 2, hot: 2, cold: 2, dishwashing: 2 },
+      { hall: 2, hot: 2, cold: 2, dishwashing: 2 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+      { hall: 1, hot: 1, cold: 1, dishwashing: 1 },
+    ];
+
+    expect(fixture.requirements).toEqual(expectedRequirements);
+  });
 });
