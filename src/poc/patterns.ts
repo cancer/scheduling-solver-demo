@@ -1,5 +1,6 @@
-import { ROLES, SLOT_COUNT } from "./types";
-import type { Employee, Role, ShiftCandidate } from "./types";
+import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
+import type { Employee, Role } from "$lib/domain/shift";
+import type { ShiftCandidate } from "./types";
 
 function stableIdentifier(value: string): string {
   const identifier = value.replace(/[^A-Za-z0-9_]/g, "_");

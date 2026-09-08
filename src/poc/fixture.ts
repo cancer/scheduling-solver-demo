@@ -1,5 +1,6 @@
-import { MAX_SHIFT_LENGTH, MIN_SHIFT_LENGTH, ROLES, SLOT_COUNT } from "./types";
-import type { ScheduleFixture, SlotRequirements } from "./types";
+import { MAX_SHIFT_LENGTH, MIN_SHIFT_LENGTH, ROLES, SLOT_COUNT } from "$lib/domain/shift";
+import type { SlotRequirements } from "$lib/domain/shift";
+import type { ScheduleFixture } from "./types";
 
 export function createUpperBoundFixture(): ScheduleFixture {
   // The upper-bound measurement uses 10 employees, all four roles, and full-day

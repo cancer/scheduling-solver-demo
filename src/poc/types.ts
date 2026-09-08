@@ -1,25 +1,7 @@
-export const SLOT_COUNT = 28;
-export const MIN_SHIFT_LENGTH = 8;
-export const MAX_SHIFT_LENGTH = 16;
-
-export const ROLES = ["hall", "hot", "cold", "dishwashing"] as const;
-export type Role = (typeof ROLES)[number];
-
-export type Availability = Readonly<{
-  start: number;
-  end: number;
-}>;
-
-export type Employee = Readonly<{
-  id: string;
-  name: string;
-  roles: readonly Role[];
-  availability?: Availability;
-  minShiftLength: number;
-  maxShiftLength: number;
-}>;
-
-export type SlotRequirements = Readonly<Record<Role, number>>;
+// シフト管理ドメインの共通の型・定数（役割・従業員・出勤可能時間帯・必要人数）は
+// `$lib/domain/shift` へ移設した（工程2）。ここには PoC の求解ロジック固有の型
+// （LP モデル・求解結果・レスポンス整形）だけを残す。
+import type { Employee, Role, SlotRequirements } from "$lib/domain/shift";
 
 export type ScheduleFixture = Readonly<{
   employees: readonly Employee[];
