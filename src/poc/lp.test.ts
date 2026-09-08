@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createUpperBoundFixture } from "./fixture";
 import { buildLpModel, calculatePenaltyM } from "./lp";
 import { ROLES, SLOT_COUNT } from "./types";
-import type { ScheduleFixture } from "./types";
+import type { Employee, ScheduleFixture } from "./types";
 
 const smallFixture: ScheduleFixture = {
   employees: [
@@ -85,6 +85,33 @@ function objectiveTerms(lpText: string): Map<string, number> {
       }),
   );
 }
+
+function employeeWithMaxShiftLength(id: string, maxShiftLength: number): Employee {
+  return {
+    id,
+    name: id,
+    roles: [],
+    minShiftLength: 1,
+    maxShiftLength,
+  };
+}
+
+describe("calculatePenaltyM", () => {
+  it.each([
+    { maxShiftLengths: [4], expectedPenaltyM: 5 },
+    { maxShiftLengths: [3, 5], expectedPenaltyM: 11 },
+    { maxShiftLengths: [4, 7, 6], expectedPenaltyM: 22 },
+  ])(
+    "uses employee count and largest shift length independently of the LP model",
+    ({ maxShiftLengths, expectedPenaltyM }) => {
+      const employees = maxShiftLengths.map((maxShiftLength, index) =>
+        employeeWithMaxShiftLength(`employee-${index}`, maxShiftLength),
+      );
+
+      expect(calculatePenaltyM(employees)).toBe(expectedPenaltyM);
+    },
+  );
+});
 
 describe("buildLpModel", () => {
   it("creates 6120 binary variables for the upper-bound fixture", () => {

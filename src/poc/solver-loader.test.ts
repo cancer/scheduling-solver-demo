@@ -96,6 +96,10 @@ describe("loadHighs", () => {
 });
 
 describe("prepareHighsWorkerEnvironment", () => {
+  it("returns the preparation token when WorkerGlobalScope is absent", () => {
+    expect(prepareHighsWorkerEnvironment({})).toEqual({ prepared: true });
+  });
+
   it("applies compatibility shims to a Worker-like scope", () => {
     const workerScope: {
       WorkerGlobalScope: object;

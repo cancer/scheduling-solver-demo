@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createUpperBoundFixture } from "./fixture";
-import { buildLpModel } from "./lp";
 import * as solverLoader from "./solver-loader";
 import { createWorkerHandler } from "./worker-handler";
 import { createWorkerApp } from "./worker-app";
@@ -14,6 +12,13 @@ const optimalWithoutAssignments: HighsSolution = {
   Rows: [],
 } as HighsSolution;
 
+// Acceptance-contract data is written here independently of buildLpModel and its fixture.
+const upperBoundRoles = ["hall", "hot", "cold", "dishwashing"] as const;
+const upperBoundSlotCount = 28;
+const upperBoundEmployeeCount = 10;
+const upperBoundMinimumShiftLength = 8;
+const upperBoundMaximumShiftLength = 16;
+
 type FakeColumn = {
   Index: number;
   Lower: number;
@@ -23,42 +28,71 @@ type FakeColumn = {
   Name: string;
 };
 
+function padded(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function createExpectedUpperBoundCandidateNames(): string[] {
+  const names: string[] = [];
+
+  for (let employeeNumber = 1; employeeNumber <= upperBoundEmployeeCount; employeeNumber += 1) {
+    for (const role of upperBoundRoles) {
+      for (
+        let length = upperBoundMinimumShiftLength;
+        length <= upperBoundMaximumShiftLength;
+        length += 1
+      ) {
+        for (let start = 0; start + length <= upperBoundSlotCount; start += 1) {
+          names.push(
+            `x_employee_${padded(employeeNumber)}_${role}_s${padded(start)}_l${padded(length)}`,
+          );
+        }
+      }
+    }
+  }
+
+  return names;
+}
+
+function createExpectedUpperBoundShortageNames(): string[] {
+  return Array.from({ length: upperBoundSlotCount }, (_, slot) =>
+    upperBoundRoles.map((role) => `u_t${padded(slot)}_${role}`),
+  ).flat();
+}
+
 function createAcceptedHighsSolution(): HighsSolution {
-  const model = buildLpModel(createUpperBoundFixture());
   const selectedAssignments = new Set([
-    "employee-01|hall|0",
-    "employee-03|cold|0",
-    "employee-04|dishwashing|0",
-    "employee-05|hot|13",
-    "employee-07|dishwashing|13",
-    "employee-08|hall|13",
-    "employee-09|hot|0",
-    "employee-10|cold|13",
+    "x_employee_01_hall_s00_l15",
+    "x_employee_03_cold_s00_l15",
+    "x_employee_04_dishwashing_s00_l15",
+    "x_employee_05_hot_s13_l15",
+    "x_employee_07_dishwashing_s13_l15",
+    "x_employee_08_hall_s13_l15",
+    "x_employee_09_hot_s00_l15",
+    "x_employee_10_cold_s13_l15",
   ]);
   const columns: Record<string, FakeColumn> = {};
+  const candidateNames = createExpectedUpperBoundCandidateNames();
+  const shortageNames = createExpectedUpperBoundShortageNames();
 
-  model.candidates.forEach((candidate, index) => {
-    columns[candidate.variableName] = {
+  candidateNames.forEach((name, index) => {
+    columns[name] = {
       Index: index,
       Lower: 0,
       Upper: 1,
-      Primal:
-        candidate.length === 15 &&
-        selectedAssignments.has(`${candidate.employeeId}|${candidate.role}|${candidate.start}`)
-          ? 1
-          : 0,
+      Primal: selectedAssignments.has(name) ? 1 : 0,
       Type: "Integer",
-      Name: candidate.variableName,
+      Name: name,
     };
   });
-  model.shortageVariables.forEach((shortage, index) => {
-    columns[shortage.name] = {
-      Index: model.candidates.length + index,
+  shortageNames.forEach((name, index) => {
+    columns[name] = {
+      Index: candidateNames.length + index,
       Lower: 0,
       Upper: Infinity,
       Primal: 0,
       Type: "Continuous",
-      Name: shortage.name,
+      Name: name,
     };
   });
 
@@ -69,6 +103,21 @@ function createAcceptedHighsSolution(): HighsSolution {
     Rows: [],
   } as HighsSolution;
 }
+
+const expectedAssignments = [
+  { employeeId: "employee-01", role: "hall", start: 0, length: 15, end: 15 },
+  { employeeId: "employee-03", role: "cold", start: 0, length: 15, end: 15 },
+  { employeeId: "employee-04", role: "dishwashing", start: 0, length: 15, end: 15 },
+  { employeeId: "employee-05", role: "hot", start: 13, length: 15, end: 28 },
+  { employeeId: "employee-07", role: "dishwashing", start: 13, length: 15, end: 28 },
+  { employeeId: "employee-08", role: "hall", start: 13, length: 15, end: 28 },
+  { employeeId: "employee-09", role: "hot", start: 0, length: 15, end: 15 },
+  { employeeId: "employee-10", role: "cold", start: 13, length: 15, end: 28 },
+] as const;
+
+const expectedShortages = Array.from({ length: upperBoundSlotCount }, (_, slot) =>
+  upperBoundRoles.map((role) => ({ slot, role, amount: 0 })),
+).flat();
 
 describe("createWorkerHandler", () => {
   it("returns the accepted upper-bound solution as formatted JSON", async () => {
@@ -94,10 +143,8 @@ describe("createWorkerHandler", () => {
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(body.status).toBe("Optimal");
     expect(body.objectiveValue).toBe(120);
-    expect(body.assignments).toHaveLength(8);
-    expect(body.assignments.every((assignment) => assignment.length === 15)).toBe(true);
-    expect(body.shortages).toHaveLength(112);
-    expect(body.shortages.every((shortage) => shortage.amount === 0)).toBe(true);
+    expect(body.assignments).toEqual(expectedAssignments);
+    expect(body.shortages).toEqual(expectedShortages);
     expect(body.model).toEqual({
       binaryVariableCount: 6120,
       shortageVariableCount: 112,
