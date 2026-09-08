@@ -1,4 +1,4 @@
-import { ROLES } from "../../domain/shift";
+import { isRole } from "../../domain/shift";
 import type { Employee, Role } from "../../domain/shift";
 
 // D1 の `employees` テーブル（日付をまたいで共有する従業員データ）への読み書き。
@@ -19,10 +19,6 @@ type EmployeeRow = {
   min_shift_length: number;
   max_shift_length: number;
 };
-
-function isRole(value: unknown): value is Role {
-  return (ROLES as readonly unknown[]).includes(value);
-}
 
 function parseRoles(rolesJson: string): readonly Role[] {
   const parsed: unknown = JSON.parse(rolesJson);

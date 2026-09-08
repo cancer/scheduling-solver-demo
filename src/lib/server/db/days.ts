@@ -1,9 +1,21 @@
-import { ROLES, SLOT_COUNT } from "../../domain/shift";
+import { isRole, ROLES, SLOT_COUNT } from "../../domain/shift";
 import type { SlotRequirements } from "../../domain/shift";
-import type { DayAvailability, DayData, StoredAssignment, StoredSolution } from "../../domain/day";
+import type {
+  DayAvailability,
+  DayData,
+  StoredAssignment,
+  StoredShortage,
+  StoredSolution,
+} from "../../domain/day";
 
 // D1 の `shift_days` テーブル（日付に属するデータ）への読み書き。物理設計・
 // カラムの意味は `migrations/0001_init.sql` のコメントを参照。
+//
+// `requirements_json` / `availability_json` / `pinned_assignments_json` / `solution_json`
+// はいずれも `JSON.parse()` の戻り値（`any`。型システムの外）を経由するため、
+// `employees.ts` の `parseRoles` と同じ境界としてここで値の形を検証する。
+// `saveDay` を経由しない経路（直接 SQL・将来のマイグレーション・手動修正）で
+// 壊れた値が入っていた場合に、読み込み側が気づかず返してしまわないようにする。
 
 type DayRow = {
   date: string;
@@ -13,16 +25,93 @@ type DayRow = {
   solution_json: string | null;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function emptyRequirements(): readonly SlotRequirements[] {
   return Array.from({ length: SLOT_COUNT }, () => ({ hall: 0, hot: 0, cold: 0, dishwashing: 0 }));
 }
 
+function isSlotRequirements(value: unknown): value is SlotRequirements {
+  return isRecord(value) && ROLES.every((role) => typeof value[role] === "number");
+}
+
+function parseRequirements(requirementsJson: string): readonly SlotRequirements[] {
+  const parsed: unknown = JSON.parse(requirementsJson);
+  if (!Array.isArray(parsed) || parsed.length !== SLOT_COUNT || !parsed.every(isSlotRequirements)) {
+    throw new Error(`shift_days.requirements_json に想定外の値が入っている: ${requirementsJson}`);
+  }
+  return parsed;
+}
+
+function isAvailabilityWindow(value: unknown): value is { start: number; end: number } {
+  return isRecord(value) && typeof value.start === "number" && typeof value.end === "number";
+}
+
+function parseAvailability(availabilityJson: string): DayAvailability {
+  const parsed: unknown = JSON.parse(availabilityJson);
+  if (!isRecord(parsed) || !Object.values(parsed).every(isAvailabilityWindow)) {
+    throw new Error(`shift_days.availability_json に想定外の値が入っている: ${availabilityJson}`);
+  }
+  return parsed as DayAvailability;
+}
+
+function isStoredAssignment(value: unknown): value is StoredAssignment {
+  return (
+    isRecord(value) &&
+    typeof value.employeeId === "string" &&
+    isRole(value.role) &&
+    typeof value.start === "number" &&
+    typeof value.length === "number"
+  );
+}
+
+function parseAssignments(
+  columnName: string,
+  assignmentsJson: string,
+): readonly StoredAssignment[] {
+  const parsed: unknown = JSON.parse(assignmentsJson);
+  if (!Array.isArray(parsed) || !parsed.every(isStoredAssignment)) {
+    throw new Error(`shift_days.${columnName} に想定外の値が入っている: ${assignmentsJson}`);
+  }
+  return parsed;
+}
+
+function isStoredShortage(value: unknown): value is StoredShortage {
+  return (
+    isRecord(value) &&
+    typeof value.slot === "number" &&
+    isRole(value.role) &&
+    typeof value.amount === "number"
+  );
+}
+
+function parseSolution(solutionJson: string | null): StoredSolution | null {
+  if (solutionJson === null) {
+    return null;
+  }
+  const parsed: unknown = JSON.parse(solutionJson);
+  if (
+    !isRecord(parsed) ||
+    typeof parsed.status !== "string" ||
+    typeof parsed.objectiveValue !== "number" ||
+    !Array.isArray(parsed.assignments) ||
+    !parsed.assignments.every(isStoredAssignment) ||
+    !Array.isArray(parsed.shortages) ||
+    !parsed.shortages.every(isStoredShortage)
+  ) {
+    throw new Error(`shift_days.solution_json に想定外の値が入っている: ${solutionJson}`);
+  }
+  return parsed as StoredSolution;
+}
+
 function rowToDayData(row: DayRow): DayData {
   return {
-    requirements: JSON.parse(row.requirements_json) as readonly SlotRequirements[],
-    availability: JSON.parse(row.availability_json) as DayAvailability,
-    pinnedAssignments: JSON.parse(row.pinned_assignments_json) as readonly StoredAssignment[],
-    solution: row.solution_json === null ? null : (JSON.parse(row.solution_json) as StoredSolution),
+    requirements: parseRequirements(row.requirements_json),
+    availability: parseAvailability(row.availability_json),
+    pinnedAssignments: parseAssignments("pinned_assignments_json", row.pinned_assignments_json),
+    solution: parseSolution(row.solution_json),
   };
 }
 
@@ -57,7 +146,7 @@ export async function saveDay(db: D1Database, date: string, data: DayData): Prom
     throw new Error(`requirements は ${SLOT_COUNT} コマ分でなければならない`);
   }
   for (const assignment of [...data.pinnedAssignments, ...(data.solution?.assignments ?? [])]) {
-    if (!(ROLES as readonly string[]).includes(assignment.role)) {
+    if (!isRole(assignment.role)) {
       throw new Error(`未知の role: ${assignment.role}`);
     }
   }

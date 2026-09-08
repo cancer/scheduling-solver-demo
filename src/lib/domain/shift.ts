@@ -15,6 +15,15 @@ export const MAX_SHIFT_LENGTH = 16;
 export const ROLES = ["hall", "hot", "cold", "dishwashing"] as const;
 export type Role = (typeof ROLES)[number];
 
+/**
+ * 値が ROLES の要素かどうかを判定する。D1 から読み込んだ JSON（`JSON.parse` の戻り値は
+ * `unknown`/`any` で型システムの外にある）の中身を検証する箇所（`src/lib/server/db/`）で
+ * 共通して使う。ここを唯一の定義にすることで、テーブルごとに検証がずれるのを防ぐ。
+ */
+export function isRole(value: unknown): value is Role {
+  return (ROLES as readonly unknown[]).includes(value);
+}
+
 /** 従業員の当日の出勤可能時間帯（1区間）。未入力はその日の休みとして扱う。 */
 export type Availability = Readonly<{
   start: number;
