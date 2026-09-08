@@ -1,9 +1,7 @@
-import type { Employee } from "../domain/shift";
-
 // API がやり取りする従業員データの形。`src/lib/server/db/employees.ts` の
 // `StoredEmployee`（工程2）と構造的に同じ（`Employee` から `availability` を
-// 除いたもの）だが、`src/lib/server/*` はサーバー専用でクライアントコードから
+// 除いたもの）。`src/lib/server/*` はサーバー専用でクライアントコードから
 // import できない（SvelteKit が `$lib/server/*` のクライアント側 import を
-// ビルドエラーにする）ため、同じ形をここで独立に定義する。JSON でやり取りする
-// 構造的な型なので、定義箇所が2つあっても値の互換性は保たれる。
-export type StoredEmployee = Omit<Employee, "availability">;
+// ビルドエラーにする）ため、`$lib/server` の代わりに `$lib/domain/shift`
+// （クライアント・サーバーどちらからも import できる唯一の定義）を re-export する。
+export type { StoredEmployee } from "../domain/shift";
