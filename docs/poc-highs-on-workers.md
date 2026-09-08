@@ -88,9 +88,16 @@ Workers には invocation とは別に startup 制限があり、Paid プラン�
 - 目標ライン: CPU 時間 **1,000 ms 以下**。1,000 ms を超え 30,000 ms 以下で `outcome: ok` なら、
   動作上は合格だが目標未達として記録する。
 - 不合格: `instantiateWasm` 経由で loader を初期化できない、HTTP が 200 でない、JSON の `status` が
-  `Optimal` でない、CPU 時間が **30,000 ms を超える**、または `outcome` が `ok` でない場合。
-  非成功 outcome として少なくとも `exceededCpu`、`exceededMemory`、`exception`、`canceled`、`unknown` を
-  明示的に不合格とし、将来追加される値や未掲載の値も合格とはしない。
+  `Optimal` でない、model metadata が `binaryVariableCount: 6120`・`shortageVariableCount: 112`・
+  `penaltyM: 161` のいずれかと一致しない、CPU 時間が **30,000 ms を超える**、または `outcome` が
+  `ok` でない場合。model metadata が一致しない場合は、測定対象が意図した規模の fixture でないため
+  CPU 時間の値も無効とし、CPU 時間の多寡によらず不合格とする。非成功 outcome として少なくとも
+  `exceededCpu`、`exceededMemory`、`exception`、`canceled`、`unknown` を明示的に不合格とし、将来追加
+  される値や未掲載の値も合格とはしない。
+
+上記の合格・不合格は、起こりうる観測の組み合わせに対して漏れなく排他的である。すなわち、
+loader 初期化・HTTP・`status`・model metadata・CPU 時間・`outcome` の6条件のうち1つでも不合格側の
+条件に該当すれば不合格であり、6条件すべてが合格側の条件を満たす場合に限り合格となる。
 
 ## WASM import の確認記録
 
