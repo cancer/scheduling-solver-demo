@@ -14,15 +14,18 @@ describe("Counter", () => {
     expect(button.textContent).toContain("1");
   });
 
-  it("shows a limit message after the third click", async () => {
+  it("shows the limit message only once the count reaches 3", async () => {
     render(Counter);
 
     const button = screen.getByRole("button");
 
     await fireEvent.click(button);
-    await fireEvent.click(button);
-    await fireEvent.click(button);
+    expect(screen.queryByText("上限に達しました")).toBeNull();
 
-    expect(screen.getByText("上限に達しました")).toBeTruthy();
+    await fireEvent.click(button);
+    expect(screen.queryByText("上限に達しました")).toBeNull();
+
+    await fireEvent.click(button);
+    expect(screen.queryByText("上限に達しました")?.textContent).toBe("上限に達しました");
   });
 });
