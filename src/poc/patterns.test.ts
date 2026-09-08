@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
+import type { Employee } from "$lib/domain/shift";
+
 import { generateShiftCandidates } from "./patterns";
-import { ROLES, SLOT_COUNT } from "./types";
-import type { Employee } from "./types";
 
 const fullEmployee: Employee = {
   id: "employee-01",

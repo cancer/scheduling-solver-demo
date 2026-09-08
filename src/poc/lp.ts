@@ -1,13 +1,8 @@
+import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
+import type { Employee, Role } from "$lib/domain/shift";
+
 import { generateShiftCandidates } from "./patterns";
-import { ROLES, SLOT_COUNT } from "./types";
-import type {
-  Employee,
-  LpModel,
-  ScheduleFixture,
-  Role,
-  ShiftCandidate,
-  ShortageVariable,
-} from "./types";
+import type { LpModel, ScheduleFixture, ShiftCandidate, ShortageVariable } from "./types";
 
 function paddedSlot(slot: number): string {
   return String(slot).padStart(2, "0");

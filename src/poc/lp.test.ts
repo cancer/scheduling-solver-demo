@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
+import type { Employee } from "$lib/domain/shift";
+
 import { createUpperBoundFixture } from "./fixture";
 import { buildLpModel, calculatePenaltyM } from "./lp";
-import { ROLES, SLOT_COUNT } from "./types";
-import type { Employee, ScheduleFixture } from "./types";
+import type { ScheduleFixture } from "./types";
 
 const smallFixture: ScheduleFixture = {
   employees: [

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
+
 import { createUpperBoundFixture } from "./fixture";
-import { ROLES, SLOT_COUNT } from "./types";
 
 describe("createUpperBoundFixture", () => {
   it("creates ten employees who can work every role for the whole day", () => {
