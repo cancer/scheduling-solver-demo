@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# SvelteKit build artifacts (adapter-cloudflare writes to .svelte-kit/cloudflare/)
+.svelte-kit/
+build/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
