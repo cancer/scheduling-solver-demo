@@ -8,6 +8,8 @@ export function beforeNavigate(callback: () => void): void {
   beforeNavigateCallbacks.add(callback);
 }
 
+// このshimが保証するのはcallbackの登録とテストからの手動発火までであり、
+// 実SvelteKitのナビゲーションライフサイクルで発火されることは検証していない（F2）。
 export function triggerBeforeNavigate(): void {
   for (const callback of beforeNavigateCallbacks) {
     callback();

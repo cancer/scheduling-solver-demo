@@ -36,4 +36,31 @@ describe("date layout", () => {
 
     expect(window.location.pathname).toBe("/days/2026-09-09/availability");
   });
+
+  it("does not navigate when the date picker is cleared", async () => {
+    window.history.replaceState({}, "", "/days/2026-09-08/requirements");
+    render(Layout, {
+      data: { date: "2026-09-08" },
+      currentPath: "/days/2026-09-08/requirements",
+    });
+
+    await fireEvent.change(document.querySelector("input[type=date]") as HTMLInputElement, {
+      target: { value: "" },
+    });
+
+    expect(window.location.pathname).toBe("/days/2026-09-08/requirements");
+  });
+
+  it("falls back to the first tab when the current path is unknown", async () => {
+    render(Layout, {
+      data: { date: "2026-09-08" },
+      currentPath: "/days/2026-09-08/unknown",
+    });
+
+    await fireEvent.change(document.querySelector("input[type=date]") as HTMLInputElement, {
+      target: { value: "2026-09-09" },
+    });
+
+    expect(window.location.pathname).toBe("/days/2026-09-09/requirements");
+  });
 });

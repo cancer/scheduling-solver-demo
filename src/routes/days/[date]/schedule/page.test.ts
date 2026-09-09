@@ -23,6 +23,10 @@ const assignedSolution: StoredSolution = {
   ...solution,
   assignments: [{ employeeId: "e1", role: "hall", start: 0, length: 8 }],
 };
+const solvedSolution: StoredSolution = {
+  ...assignedSolution,
+  shortages: [{ slot: 0, role: "hall", amount: 2 }],
+};
 const day: DayData = {
   requirements: emptyRequirements(),
   availability: {},
@@ -36,7 +40,7 @@ function fakeApiClient(): ApiClient {
     putEmployees: vi.fn(),
     getDay: vi.fn(),
     putDay: vi.fn(),
-    solveDay: vi.fn(async () => ({ ...day, solution })),
+    solveDay: vi.fn(async () => ({ ...day, solution: solvedSolution })),
     reset: vi.fn(),
   };
 }
@@ -53,6 +57,18 @@ describe("schedule page", () => {
     expect(apiClient.solveDay).toHaveBeenCalledWith("2026-09-08", []);
     await vi.waitFor(() => expect(screen.getByText("求解しました")).toBeTruthy());
     expect(apiClient.putDay).not.toHaveBeenCalled();
+  });
+
+  it("shows the returned assignment and shortage after solving", async () => {
+    const apiClient = fakeApiClient();
+    render(Page, { data: { date: "2026-09-08", employees: [alice], day }, apiClient });
+
+    await fireEvent.click(screen.getByRole("button", { name: "この日のシフトを求解" }));
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: /アリス.*ホール.*10:00.*14:00/ })).toBeTruthy();
+      expect(screen.getByLabelText("ホール 10:00 不足2人")).toBeTruthy();
+    });
   });
 
   it("pins a clicked bar and sends the updated fixed assignment to solve", async () => {

@@ -43,6 +43,46 @@ describe("employees page", () => {
     expect(apiClient.putEmployees).toHaveBeenCalledWith([{ ...alice, minShiftLength: 10 }]);
   });
 
+  it("saves a name edit through the page API boundary", async () => {
+    const apiClient = fakeApiClient();
+    render(Page, { data: { employees: [alice] }, apiClient });
+
+    await fireEvent.change(screen.getByLabelText("アリスの名前"), {
+      target: { value: "アリス改" },
+    });
+
+    expect(apiClient.putEmployees).toHaveBeenCalledWith([{ ...alice, name: "アリス改" }]);
+  });
+
+  it("saves a role toggle through the page API boundary", async () => {
+    const apiClient = fakeApiClient();
+    render(Page, { data: { employees: [alice] }, apiClient });
+
+    await fireEvent.click(screen.getByRole("checkbox", { name: "アリス ホット" }));
+
+    expect(apiClient.putEmployees).toHaveBeenCalledWith([{ ...alice, roles: ["hall", "hot"] }]);
+  });
+
+  it("saves a newly added employee through the page API boundary", async () => {
+    const apiClient = fakeApiClient();
+    render(Page, { data: { employees: [alice] }, apiClient });
+
+    await fireEvent.input(screen.getByLabelText("新しい従業員名"), {
+      target: { value: "ボブ" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "追加" }));
+
+    expect(apiClient.putEmployees).toHaveBeenCalledWith([
+      alice,
+      expect.objectContaining({
+        name: "ボブ",
+        roles: [],
+        minShiftLength: 8,
+        maxShiftLength: 16,
+      }),
+    ]);
+  });
+
   it("saves employee deletion immediately through the page API boundary", async () => {
     const apiClient = fakeApiClient();
     render(Page, { data: { employees: [alice] }, apiClient });
