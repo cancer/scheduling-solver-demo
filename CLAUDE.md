@@ -211,11 +211,16 @@ D1 バインディング（名前は `DB`。`src/app.d.ts` の `Platform.env.DB`
 同期させる義務が生じている。** 次にどちらかを触るときは、もう片方も同じ内容になっているか
 確認すること。
 
-`database_id` は両ファイルとも `00000000-0000-0000-0000-000000000000`（プレースホルダー）を
-置いている。工程6（実際の `wrangler d1 create` によるリモート DB 作成）が未着手のため、
-実 ID が無い。`npx wrangler dev` / `npx wrangler deploy --dry-run` はこのプレースホルダーで
-成立することを実行環境で確認した。**実デプロイの前には `wrangler d1 create` が出す実 ID に
-差し替える必要がある**（工程6の作業。本工程では行わない）。
+`database_id` の扱いは2ファイルで違う。**`wrangler.jsonc`（製品）には `wrangler d1 create` が
+出した実 ID をコミットしてある。** `database_id` は Wrangler 設定の required 項目であり、秘密ではない
+（秘密は `wrangler secret put` 側で扱う。出典:
+<https://developers.cloudflare.com/workers/wrangler/configuration/>）。プレースホルダーを置いて
+デプロイのたびに手で差し替える運用は、書き換え漏れと戻し忘れの事故を招くのでやめた。
+別アカウントで動かす場合はここを自分の `wrangler d1 create` の出力へ書き換える。
+
+`wrangler.test.jsonc` は `database_name` が別（`scheduling-solver-demo-workers-test`）で
+miniflare のローカル D1 しか使わないため、`database_id` はプレースホルダーのままである。
+**同期させる義務があるのはバインディング名（`DB`）と構成であって、`database_id` の値ではない。**
 
 ### 物理設計
 

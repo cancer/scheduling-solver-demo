@@ -48,8 +48,10 @@ node_modules/.bin/wrangler d1 create scheduling-solver-demo
 
 ## 2. `database_id` の反映
 
-`wrangler.jsonc` の `d1_databases[0].database_id` にあるプレースホルダー
-（`00000000-0000-0000-0000-000000000000`）を、手順1で取得した実際の `database_id` に書き換える。
+**`wrangler.jsonc` の `d1_databases[0].database_id` には、既に実 ID がコミットされている**
+（personal アカウント `zodiac.cancer.j6@gmail.com` の `scheduling-solver-demo`）。同じアカウントで
+デプロイする場合、この手順は不要である。**別のアカウント・別のデータベースで動かす場合だけ**、
+手順1で取得した `database_id` に書き換える。
 
 ```jsonc
 "d1_databases": [

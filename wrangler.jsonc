@@ -12,11 +12,15 @@
     {
       "binding": "DB",
       "database_name": "scheduling-solver-demo",
-      // 工程6（実際の D1 作成・リモートへのマイグレーション適用）が未着手のため、
-      // `wrangler d1 create` 発行前の仮 ID を置いている。ローカル `wrangler dev` /
-      // `--dry-run` はこの値で成立する（本工程で確認済み）。実デプロイの前には
-      // `wrangler d1 create` の出力する実 ID に差し替える必要がある（工程6の作業）。
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // `wrangler d1 create` が出力した実 ID（personal アカウント
+      // `zodiac.cancer.j6@gmail.com` の `scheduling-solver-demo`、region APAC）。
+      // `database_id` は Wrangler 設定の required 項目であり、秘密ではない
+      // （秘密は `wrangler secret put` 側で扱う）。出典:
+      // <https://developers.cloudflare.com/workers/wrangler/configuration/>
+      // プレースホルダーを置いてデプロイのたびに手で差し替える運用は、書き換え漏れと
+      // 戻し忘れの事故を招くのでやめた。別アカウントで動かす場合はここを自分の
+      // `wrangler d1 create` の出力へ書き換える。
+      "database_id": "f80cd305-94a4-4f23-bd6b-99071af18cb1",
     },
   ],
   "observability": {
