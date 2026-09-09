@@ -38,7 +38,7 @@
   <div class="day-heading">
     <div>
       <p class="eyebrow">日別シフト</p>
-      <h1 id="day-title">対象日付</h1>
+      <h1 id="day-title">{data.date}のシフト管理</h1>
     </div>
     <label>
       対象日付

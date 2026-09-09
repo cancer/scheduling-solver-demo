@@ -1,12 +1,30 @@
 // client プロジェクトで SvelteKit の仮想モジュールを解決するためのテスト用 shim。
 // 本番ビルドでは SvelteKit が `$app/navigation` を提供する。
 
+const beforeNavigateCallbacks = new Set<() => void>();
+let invalidateAllCallCount = 0;
+
 export function beforeNavigate(callback: () => void): void {
-  void callback;
+  beforeNavigateCallbacks.add(callback);
+}
+
+export function triggerBeforeNavigate(): void {
+  for (const callback of beforeNavigateCallbacks) {
+    callback();
+  }
+}
+
+export function getInvalidateAllCallCount(): number {
+  return invalidateAllCallCount;
+}
+
+export function resetNavigationTestState(): void {
+  beforeNavigateCallbacks.clear();
+  invalidateAllCallCount = 0;
 }
 
 export async function invalidateAll(): Promise<void> {
-  return;
+  invalidateAllCallCount += 1;
 }
 
 export async function goto(url: string): Promise<void> {

@@ -12,6 +12,7 @@ describe("date layout", () => {
     expect((document.querySelector("input[type=date]") as HTMLInputElement).value).toBe(
       "2026-09-08",
     );
+    expect(screen.getByRole("heading", { name: "2026-09-08のシフト管理" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "必要人数" }).getAttribute("aria-current")).toBe(
       "page",
     );
