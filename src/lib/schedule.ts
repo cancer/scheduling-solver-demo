@@ -1,6 +1,7 @@
 import { SLOT_COUNT } from "./domain/shift";
 import type { Role, SlotRequirements } from "./domain/shift";
 import type { StoredShortage } from "./domain/day";
+import type { StoredAssignment } from "./domain/day";
 import { roleLabel, slotStartLabel } from "./heatmap";
 
 // 求解結果の画面表示（シフト表・不足人数）が使う純関数。`.svelte` はこれらを
@@ -19,6 +20,27 @@ export function assignmentLabel(
 /** 不足表示セルの読み上げ用ラベル（役割・時刻・不足人数）。 */
 export function shortageAriaLabel(role: Role, slot: number, amount: number): string {
   return `${roleLabel(role)} ${slotStartLabel(slot)} 不足${amount}人`;
+}
+
+export type AssignmentBarPosition = Readonly<{
+  columnStart: number;
+  columnSpan: number;
+}>;
+
+/** 勤務割当を28コマのCSSグリッド上の開始列と幅へ変換する。 */
+export function assignmentBarPosition(
+  assignment: Pick<StoredAssignment, "start" | "length">,
+): AssignmentBarPosition {
+  return {
+    columnStart: assignment.start + 1,
+    columnSpan: assignment.length,
+  };
+}
+
+/** 勤務バーの位置を CSS グリッド指定へ変換する。 */
+export function assignmentBarStyle(assignment: Pick<StoredAssignment, "start" | "length">): string {
+  const position = assignmentBarPosition(assignment);
+  return `grid-column: ${position.columnStart} / span ${position.columnSpan};`;
 }
 
 /** ソルバーが返す不足リストを、必要人数と同じ形（コマ×役割）へ整形する。 */

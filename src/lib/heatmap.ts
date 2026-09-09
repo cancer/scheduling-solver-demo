@@ -14,6 +14,11 @@ export function slotStartLabel(slot: number): string {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+/** 30分コマの時刻見出しを、1時間ごとに表示するための判定。 */
+export function isHourlySlot(slot: number): boolean {
+  return (slot * SLOT_MINUTES) % 60 === 0;
+}
+
 const ROLE_LABELS: Readonly<Record<Role, string>> = {
   hall: "ホール",
   hot: "ホット",

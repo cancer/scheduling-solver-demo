@@ -54,4 +54,24 @@ describe("createDebouncer", () => {
 
     expect(fn).not.toHaveBeenCalled();
   });
+
+  it("flushes a pending function immediately and clears its timer", () => {
+    const fn = vi.fn();
+    const debouncer = createDebouncer(300, fn);
+
+    debouncer.trigger();
+    debouncer.flush();
+    vi.advanceTimersByTime(300);
+
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing when there is no pending function to flush", () => {
+    const fn = vi.fn();
+    const debouncer = createDebouncer(300, fn);
+
+    debouncer.flush();
+
+    expect(fn).not.toHaveBeenCalled();
+  });
 });

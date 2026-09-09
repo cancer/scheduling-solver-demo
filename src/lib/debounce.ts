@@ -4,6 +4,7 @@
 export type Debouncer = Readonly<{
   trigger: () => void;
   cancel: () => void;
+  flush: () => void;
 }>;
 
 export function createDebouncer(delayMs: number, fn: () => void): Debouncer {
@@ -21,6 +22,14 @@ export function createDebouncer(delayMs: number, fn: () => void): Debouncer {
         clearTimeout(timer);
         timer = undefined;
       }
+    },
+    flush() {
+      if (timer === undefined) {
+        return;
+      }
+      clearTimeout(timer);
+      timer = undefined;
+      fn();
     },
   };
 }

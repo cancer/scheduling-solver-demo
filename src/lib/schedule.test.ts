@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { assignmentLabel, buildShortageGrid, shortageAriaLabel } from "./schedule";
+import {
+  assignmentBarPosition,
+  assignmentBarStyle,
+  assignmentLabel,
+  buildShortageGrid,
+  shortageAriaLabel,
+} from "./schedule";
 import { SLOT_COUNT } from "./domain/shift";
 
 describe("assignmentLabel", () => {
@@ -11,6 +17,28 @@ describe("assignmentLabel", () => {
 describe("shortageAriaLabel", () => {
   it("combines role, time and shortage amount into one label", () => {
     expect(shortageAriaLabel("hall", 4, 2)).toBe("ホール 12:00 不足2人");
+  });
+});
+
+describe("assignmentBarPosition", () => {
+  it("maps a shift start and length to the timeline grid columns", () => {
+    expect(assignmentBarPosition({ start: 0, length: 8 })).toMatchObject({
+      columnStart: 1,
+      columnSpan: 8,
+    });
+  });
+
+  it("keeps a late shift inside the 28-slot timeline", () => {
+    expect(assignmentBarPosition({ start: 20, length: 8 })).toMatchObject({
+      columnStart: 21,
+      columnSpan: 8,
+    });
+  });
+});
+
+describe("assignmentBarStyle", () => {
+  it("returns the CSS grid placement for the timeline bar", () => {
+    expect(assignmentBarStyle({ start: 4, length: 8 })).toBe("grid-column: 5 / span 8;");
   });
 });
 
