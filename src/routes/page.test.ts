@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import Page from "./+page.svelte";
 
 describe("entry page", () => {
@@ -19,5 +19,19 @@ describe("entry page", () => {
     expect(screen.getByRole("link", { name: "従業員を管理する" }).getAttribute("href")).toBe(
       "/employees",
     );
+  });
+
+  it("chooses today's date in the browser when no server date is supplied", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 9, 12));
+    try {
+      render(Page);
+
+      expect(screen.getByRole("link", { name: "この日のシフトを開く" }).getAttribute("href")).toBe(
+        "/days/2026-09-09/requirements",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
