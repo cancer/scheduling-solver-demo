@@ -73,4 +73,18 @@ describe("availability page", () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(apiClient.putDay).toHaveBeenCalledTimes(1);
   });
+
+  it("does not resend an already-saved day when navigation starts", async () => {
+    vi.useFakeTimers();
+    const apiClient = fakeApiClient();
+    render(Page, { data: { date: "2026-09-08", employees: [alice], day }, apiClient });
+
+    await fireEvent.click(screen.getByRole("checkbox", { name: "アリス 出勤" }));
+    await vi.advanceTimersByTimeAsync(500);
+    expect(apiClient.putDay).toHaveBeenCalledTimes(1);
+
+    triggerBeforeNavigate();
+
+    expect(apiClient.putDay).toHaveBeenCalledTimes(1);
+  });
 });

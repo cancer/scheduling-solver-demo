@@ -72,4 +72,20 @@ describe("requirements page", () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(apiClient.putDay).toHaveBeenCalledTimes(1);
   });
+
+  it("does not resend an already-saved day when navigation starts", async () => {
+    vi.useFakeTimers();
+    const apiClient = fakeApiClient();
+    render(Page, { data: { date: "2026-09-08", day }, apiClient });
+
+    await fireEvent.keyDown(screen.getByRole("button", { name: "ホール 10:00 必要人数0人" }), {
+      key: "ArrowUp",
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(apiClient.putDay).toHaveBeenCalledTimes(1);
+
+    triggerBeforeNavigate();
+
+    expect(apiClient.putDay).toHaveBeenCalledTimes(1);
+  });
 });

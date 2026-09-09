@@ -1,5 +1,5 @@
 <script lang="ts">
-  import RootLayout from "./+layout.svelte";
+  import RootLayout from "../routes/+layout.svelte";
   import ResetRegistrationProbe from "./reset-registration-probe.svelte";
   import type { ApiClient } from "$lib/api/client";
 

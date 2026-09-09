@@ -15,7 +15,10 @@ export function createDebouncer(delayMs: number, fn: () => void): Debouncer {
       if (timer !== undefined) {
         clearTimeout(timer);
       }
-      timer = setTimeout(fn, delayMs);
+      timer = setTimeout(() => {
+        timer = undefined;
+        fn();
+      }, delayMs);
     },
     cancel() {
       if (timer !== undefined) {

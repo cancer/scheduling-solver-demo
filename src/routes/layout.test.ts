@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import LayoutHarness from "./layout-test-harness.svelte";
+import LayoutHarness from "$lib/layout-test-harness.svelte";
 import type { ApiClient } from "$lib/api/client";
 import { getInvalidateAllCallCount, resetNavigationTestState } from "$lib/test-app-navigation";
 
