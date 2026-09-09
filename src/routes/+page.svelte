@@ -1,121 +1,73 @@
 <script lang="ts">
-  import EmployeeManager from "$lib/components/EmployeeManager.svelte";
-  import RequirementsHeatmap from "$lib/components/RequirementsHeatmap.svelte";
-  import AvailabilityEditor from "$lib/components/AvailabilityEditor.svelte";
-  import ScheduleBoard from "$lib/components/ScheduleBoard.svelte";
+  import { onMount, untrack } from "svelte";
   import { createApiClient } from "$lib/api/client";
   import type { ApiClient } from "$lib/api/client";
-  import type { StoredEmployee } from "$lib/api/types";
-  import type { DayAvailability, DayData, StoredAssignment } from "$lib/domain/day";
-  import type { SlotRequirements } from "$lib/domain/shift";
-  import { createDebouncer } from "$lib/debounce";
   import { formatDateISO } from "$lib/date";
-  import { togglePinned } from "$lib/pinning";
-  import { untrack } from "svelte";
-
-  // 管理者画面の入口。ロジックは `$lib` の純関数・API クライアントへ寄せ、
-  // ここは状態の保持とイベント配線だけを持つ（決定5）。
-  // 工程4（`src/routes/api/`）は並行実装のため、テストでは `apiClient` を
-  // 差し替える（HTTP 呼び出しは `$lib/api/client` の1モジュールに閉じている）。
-
-  const AUTOSAVE_DELAY_MS = 500;
-
   let {
+    initialDate = "",
     apiClient = createApiClient(fetch),
-    initialDate = formatDateISO(new Date()),
-  }: { apiClient?: ApiClient; initialDate?: string } = $props();
-
-  // `initialDate` は初期値としてのみ使い、以後は日付選択 UI が `selectedDate` を
-  // 直接更新する（`initialDate` の変化を追わない）。`untrack` でその意図を明示する。
+  }: {
+    initialDate?: string;
+    apiClient?: ApiClient;
+  } = $props();
   let selectedDate = $state(untrack(() => initialDate));
-  let employees = $state<readonly StoredEmployee[]>([]);
-  let day = $state<DayData | null>(null);
 
-  const saveDay = createDebouncer(AUTOSAVE_DELAY_MS, () => {
-    if (day !== null) {
-      void apiClient.putDay(selectedDate, day);
+  // 「今日」は SSR の日時ではなく、ブラウザでマウントした時点のローカル日付を使う。
+  onMount(() => {
+    // 入口はデータを取得しないが、各画面と同じ差し替え口を維持する。
+    void apiClient;
+    if (selectedDate === "") {
+      selectedDate = formatDateISO(new Date());
     }
   });
 
-  async function loadEmployees() {
-    employees = await apiClient.getEmployees();
-  }
-
-  async function loadDay(date: string) {
-    day = await apiClient.getDay(date);
-  }
-
-  $effect(() => {
-    void loadEmployees();
-  });
-
-  $effect(() => {
-    void loadDay(selectedDate);
-  });
-
-  function handleEmployeesChange(next: readonly StoredEmployee[]) {
-    employees = next;
-    void apiClient.putEmployees(next);
-  }
-
-  // 以下の3つのハンドラは `{#if day !== null}` の内側に配線した子コンポーネントだけが
-  // 呼ぶため、呼ばれる時点で `day` は必ず非null。テンプレート側の分岐がその保証を
-  // 与えているので、ここで再度 null チェックはしない。
-  function handleRequirementsCommit(currentDay: DayData, next: readonly SlotRequirements[]) {
-    day = { ...currentDay, requirements: next };
-    saveDay.trigger();
-  }
-
-  function handleAvailabilityCommit(currentDay: DayData, next: DayAvailability) {
-    day = { ...currentDay, availability: next };
-    saveDay.trigger();
-  }
-
-  async function handleTogglePin(currentDay: DayData, assignment: StoredAssignment) {
-    // クリックから画面が変わるまでの経過時間を計測できるようにしておく（決定4 の
-    // 目標ライン=1秒の物差し）。ブラウザの開発者ツールで確認する想定で、値は
-    // console に出すだけに留める（画面には出さない）。
-    const clickedAt = performance.now();
-    const nextPinned = togglePinned(currentDay.pinnedAssignments, assignment);
-    day = { ...currentDay, pinnedAssignments: nextPinned };
-    day = await apiClient.solveDay(selectedDate, nextPinned);
-    console.debug(`再求解: ${(performance.now() - clickedAt).toFixed(0)}ms`);
-  }
-
-  async function handleReset() {
-    saveDay.cancel();
-    await apiClient.reset();
-    await loadEmployees();
-    await loadDay(selectedDate);
-  }
+  const dayHref = $derived(
+    selectedDate === "" ? "/days" : `/days/${selectedDate}/requirements`,
+  );
 </script>
 
 <h1>シフト管理デモ</h1>
+<p>対象日付を選んで、必要人数・出勤可能時間帯を入力し、その日のシフトを求解します。</p>
 
-<label>
-  日付
-  <input type="date" bind:value={selectedDate} />
-</label>
+<section class="entry-actions" aria-labelledby="day-heading">
+  <h2 id="day-heading">日別シフト</h2>
+  <label>
+    対象日付
+    <input aria-label="対象日付" type="date" bind:value={selectedDate} />
+  </label>
+  <a class="primary-link" href={dayHref}>この日のシフトを開く</a>
+</section>
 
-<button type="button" onclick={handleReset}>初期データに戻す</button>
+<section aria-labelledby="employee-heading">
+  <h2 id="employee-heading">従業員マスタ</h2>
+  <p>従業員の名前・役割・勤務長さは日付をまたいで共有します。</p>
+  <a href="/employees">従業員を管理する</a>
+</section>
 
-<EmployeeManager {employees} onchange={handleEmployeesChange} />
-
-{#if day !== null}
-  {@const currentDay = day}
-  <RequirementsHeatmap
-    requirements={currentDay.requirements}
-    oncommit={(next) => handleRequirementsCommit(currentDay, next)}
-  />
-  <AvailabilityEditor
-    {employees}
-    availability={currentDay.availability}
-    oncommit={(next) => handleAvailabilityCommit(currentDay, next)}
-  />
-  <ScheduleBoard
-    {employees}
-    solution={currentDay.solution}
-    pinnedAssignments={currentDay.pinnedAssignments}
-    ontogglepin={(assignment) => handleTogglePin(currentDay, assignment)}
-  />
-{/if}
+<style>
+  .entry-actions {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 28rem;
+    margin: 2rem 0;
+    padding: 1.25rem;
+    border: 1px solid #d9e2ec;
+    border-radius: 0.5rem;
+    background: white;
+  }
+  .entry-actions label {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .primary-link {
+    justify-self: start;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.35rem;
+    background: #0b7285;
+    color: white;
+    text-decoration: none;
+  }
+  section + section {
+    margin-top: 2rem;
+  }
+</style>
