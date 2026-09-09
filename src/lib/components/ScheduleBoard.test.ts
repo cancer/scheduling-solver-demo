@@ -90,4 +90,31 @@ describe("ScheduleBoard", () => {
 
     expect(screen.getByLabelText("ホール 12:00 不足2人")).toBeTruthy();
   });
+
+  it("places an assignment on the 28-slot timeline with a named employee-role row", () => {
+    render(ScheduleBoard, {
+      employees: [alice],
+      solution,
+      pinnedAssignments: [],
+      ontogglepin: vi.fn(),
+    });
+
+    expect(screen.getByText("アリス / ホール")).toBeTruthy();
+    const bar = screen.getByRole("button", { name: /アリス.*ホール/ });
+    expect((bar as HTMLElement).style.gridColumn).toBe("1 / span 8");
+  });
+
+  it("uses the same hourly time headers for the shortage grid", () => {
+    render(ScheduleBoard, {
+      employees: [alice],
+      solution,
+      pinnedAssignments: [],
+      ontogglepin: vi.fn(),
+    });
+
+    const headers = Array.from(document.querySelectorAll(".time-header"), (header) =>
+      header.textContent?.trim(),
+    );
+    expect(headers.slice(0, 5)).toEqual(["10:00", "", "11:00", "", "12:00"]);
+  });
 });

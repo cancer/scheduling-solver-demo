@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { addEmployee, removeEmployee, toggleRole, updateEmployee } from "./employees";
+import {
+  addEmployee,
+  hoursToShiftLength,
+  isValidShiftLengthRange,
+  removeEmployee,
+  shiftLengthToHours,
+  toggleRole,
+  updateEmployee,
+} from "./employees";
 import type { StoredEmployee } from "./api/types";
 
 const alice: StoredEmployee = {
@@ -62,5 +70,38 @@ describe("toggleRole", () => {
 
   it("removes a role that is already present", () => {
     expect(toggleRole(["hall", "hot"], "hall")).toEqual(["hot"]);
+  });
+});
+
+describe("shift length conversion", () => {
+  it("converts stored half-hour slots to display hours", () => {
+    expect(shiftLengthToHours(8)).toBe(4);
+    expect(shiftLengthToHours(1)).toBe(0.5);
+  });
+
+  it("converts half-hour display values to stored slots", () => {
+    expect(hoursToShiftLength(4)).toBe(8);
+    expect(hoursToShiftLength(0.5)).toBe(1);
+  });
+
+  it("rejects display values that are not half-hour increments within the business range", () => {
+    expect(hoursToShiftLength(0)).toBeNull();
+    expect(hoursToShiftLength(4.25)).toBeNull();
+    expect(hoursToShiftLength(14.5)).toBeNull();
+    expect(hoursToShiftLength(Number.NaN)).toBeNull();
+  });
+});
+
+describe("isValidShiftLengthRange", () => {
+  it("accepts a range from one slot through the opening hours", () => {
+    expect(isValidShiftLengthRange(1, 28)).toBe(true);
+    expect(isValidShiftLengthRange(8, 16)).toBe(true);
+  });
+
+  it("rejects a reversed or out-of-range slot range", () => {
+    expect(isValidShiftLengthRange(17, 16)).toBe(false);
+    expect(isValidShiftLengthRange(0, 16)).toBe(false);
+    expect(isValidShiftLengthRange(1, 29)).toBe(false);
+    expect(isValidShiftLengthRange(1.5, 2)).toBe(false);
   });
 });

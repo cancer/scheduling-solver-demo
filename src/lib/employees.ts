@@ -1,3 +1,4 @@
+import { SLOT_COUNT } from "./domain/shift";
 import type { Role } from "./domain/shift";
 import type { StoredEmployee } from "./api/types";
 
@@ -32,4 +33,33 @@ export function removeEmployee(
 /** 役割集合に対する追加・削除の切り替え（チェックボックスの配線が使う）。 */
 export function toggleRole(roles: readonly Role[], role: Role): readonly Role[] {
   return roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role];
+}
+
+/** 保存されている30分コマ数を、画面で表示する時間へ変換する。 */
+export function shiftLengthToHours(length: number): number {
+  return length / 2;
+}
+
+/** 画面の時間入力を30分コマ数へ変換する。不正な入力は null を返す。 */
+export function hoursToShiftLength(hours: number): number | null {
+  if (
+    !Number.isFinite(hours) ||
+    hours < 0.5 ||
+    hours > SLOT_COUNT / 2 ||
+    !Number.isInteger(hours * 2)
+  ) {
+    return null;
+  }
+  return hours * 2;
+}
+
+/** 勤務長さの下限・上限が30分コマ数として有効かを判定する。 */
+export function isValidShiftLengthRange(minLength: number, maxLength: number): boolean {
+  return (
+    Number.isInteger(minLength) &&
+    Number.isInteger(maxLength) &&
+    minLength >= 1 &&
+    maxLength <= SLOT_COUNT &&
+    minLength <= maxLength
+  );
 }

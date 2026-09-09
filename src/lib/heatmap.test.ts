@@ -3,6 +3,7 @@ import {
   adjustCount,
   cellAriaLabel,
   heatColor,
+  isHourlySlot,
   roleLabel,
   setRequirement,
   slotStartLabel,
@@ -20,6 +21,15 @@ describe("slotStartLabel", () => {
 
   it("labels the last slot as 23:30", () => {
     expect(slotStartLabel(SLOT_COUNT - 1)).toBe("23:30");
+  });
+});
+
+describe("isHourlySlot", () => {
+  it("keeps whole-hour headers and omits the intervening half-hour headers", () => {
+    expect(isHourlySlot(0)).toBe(true);
+    expect(isHourlySlot(1)).toBe(false);
+    expect(isHourlySlot(2)).toBe(true);
+    expect(isHourlySlot(27)).toBe(false);
   });
 });
 

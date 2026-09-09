@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: {
       $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+      "$app/navigation": fileURLToPath(
+        new URL("./src/lib/test-app-navigation.ts", import.meta.url),
+      ),
+      "$app/state": fileURLToPath(new URL("./src/lib/test-app-state.ts", import.meta.url)),
     },
   },
   test: {
