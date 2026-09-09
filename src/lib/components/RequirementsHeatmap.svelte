@@ -1,7 +1,15 @@
 <script lang="ts">
   import { ROLES } from "$lib/domain/shift";
   import type { SlotRequirements } from "$lib/domain/shift";
-  import { adjustCount, cellAriaLabel, heatColor, roleLabel, setRequirement, slotStartLabel } from "$lib/heatmap";
+  import {
+    adjustCount,
+    cellAriaLabel,
+    heatColor,
+    isHourlySlot,
+    roleLabel,
+    setRequirement,
+    slotStartLabel,
+  } from "$lib/heatmap";
 
   // 必要人数ヒートマップ（決定17）。ロジックは `$lib/heatmap` の純関数に寄せ、
   // ここは表示とイベント配線だけを持つ（決定5）。
@@ -68,28 +76,33 @@
     <input type="number" min="0" max="99" bind:value={brushValue} />
   </label>
 
-  <div class="grid" style={`grid-template-columns: max-content repeat(${requirements.length}, 1fr);`}>
-    <div class="corner"></div>
-    {#each displayed as _, slot (slot)}
-      <div class="time-header">{slotStartLabel(slot)}</div>
-    {/each}
-
-    {#each ROLES as role (role)}
-      <div class="role-header">{roleLabel(role)}</div>
-      {#each displayed as requirement, slot (slot)}
-        <button
-          type="button"
-          class="cell"
-          style={`background-color: ${heatColor(requirement[role], SCALE_MAX)};`}
-          aria-label={cellAriaLabel(role, slot, requirement[role])}
-          onpointerdown={() => startPaint(role, slot)}
-          onpointerenter={(event) => continuePaint(role, slot, event.buttons)}
-          onkeydown={(event) => handleKeydown(event, role, slot)}
-        >
-          {requirement[role]}
-        </button>
+  <div class="scroll-container">
+    <div
+      class="grid"
+      style={`grid-template-columns: minmax(7rem, max-content) repeat(${requirements.length}, minmax(4.25rem, 1fr));`}
+    >
+      <div class="corner"></div>
+      {#each displayed as _, slot (slot)}
+        <div class="time-header">{#if isHourlySlot(slot)}{slotStartLabel(slot)}{/if}</div>
       {/each}
-    {/each}
+
+      {#each ROLES as role (role)}
+        <div class="role-header">{roleLabel(role)}</div>
+        {#each displayed as requirement, slot (slot)}
+          <button
+            type="button"
+            class="cell"
+            style={`background-color: ${heatColor(requirement[role], SCALE_MAX)};`}
+            aria-label={cellAriaLabel(role, slot, requirement[role])}
+            onpointerdown={() => startPaint(role, slot)}
+            onpointerenter={(event) => continuePaint(role, slot, event.buttons)}
+            onkeydown={(event) => handleKeydown(event, role, slot)}
+          >
+            {requirement[role]}
+          </button>
+        {/each}
+      {/each}
+    </div>
   </div>
 </div>
 
@@ -97,6 +110,11 @@
   .grid {
     display: grid;
     gap: 1px;
+    min-width: max-content;
+  }
+  .scroll-container {
+    max-width: 100%;
+    overflow-x: auto;
   }
   .cell {
     border: none;
@@ -104,10 +122,21 @@
     padding: 0.25rem 0;
     cursor: pointer;
   }
+  .cell:focus-visible {
+    outline: 3px solid #111;
+    outline-offset: -3px;
+  }
   .role-header,
   .time-header,
   .corner {
     font-size: 0.7rem;
     padding: 0.25rem;
+  }
+  .role-header,
+  .corner {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: white;
   }
 </style>

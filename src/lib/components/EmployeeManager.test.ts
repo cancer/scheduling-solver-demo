@@ -72,4 +72,49 @@ describe("EmployeeManager", () => {
     const result = onchange.mock.calls[0][0] as StoredEmployee[];
     expect(result[0].roles).toEqual(["hall", "hot"]);
   });
+
+  it("shows stored shift length limits in hours", () => {
+    render(EmployeeManager, { employees: [alice], onchange: vi.fn() });
+
+    expect((screen.getByLabelText("アリス 勤務長さ下限（時間）") as HTMLInputElement).value).toBe(
+      "4",
+    );
+    expect((screen.getByLabelText("アリス 勤務長さ上限（時間）") as HTMLInputElement).value).toBe(
+      "8",
+    );
+  });
+
+  it("saves a valid shift length edit through onchange in stored slots", async () => {
+    const onchange = vi.fn();
+    render(EmployeeManager, { employees: [alice], onchange });
+
+    await fireEvent.change(screen.getByLabelText("アリス 勤務長さ下限（時間）"), {
+      target: { value: "5" },
+    });
+
+    expect(onchange).toHaveBeenCalledWith([{ ...alice, minShiftLength: 10 }]);
+  });
+
+  it("saves a valid upper limit edit through onchange in stored slots", async () => {
+    const onchange = vi.fn();
+    render(EmployeeManager, { employees: [alice], onchange });
+
+    await fireEvent.change(screen.getByLabelText("アリス 勤務長さ上限（時間）"), {
+      target: { value: "7" },
+    });
+
+    expect(onchange).toHaveBeenCalledWith([{ ...alice, maxShiftLength: 14 }]);
+  });
+
+  it("shows an error and does not save an invalid reversed range", async () => {
+    const onchange = vi.fn();
+    render(EmployeeManager, { employees: [alice], onchange });
+
+    await fireEvent.change(screen.getByLabelText("アリス 勤務長さ下限（時間）"), {
+      target: { value: "9" },
+    });
+
+    expect(onchange).not.toHaveBeenCalled();
+    expect(screen.getByText(/下限は上限以下/)).toBeTruthy();
+  });
 });

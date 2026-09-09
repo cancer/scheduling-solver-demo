@@ -80,4 +80,13 @@ describe("RequirementsHeatmap", () => {
     const cell = screen.getByRole("button", { name: "ホール 10:00 必要人数0人" });
     expect(cell.textContent).toContain("0");
   });
+
+  it("shows hourly labels while leaving the intervening half-hour headers blank", () => {
+    render(RequirementsHeatmap, { requirements: emptyRequirements(), oncommit: vi.fn() });
+
+    const headers = Array.from(document.querySelectorAll(".time-header"), (header) =>
+      header.textContent?.trim(),
+    );
+    expect(headers.slice(0, 5)).toEqual(["10:00", "", "11:00", "", "12:00"]);
+  });
 });
