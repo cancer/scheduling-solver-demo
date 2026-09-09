@@ -1,5 +1,5 @@
 import { isRole } from "../../domain/shift";
-import type { Employee, Role } from "../../domain/shift";
+import type { Role, StoredEmployee } from "../../domain/shift";
 
 // D1 の `employees` テーブル（日付をまたいで共有する従業員データ）への読み書き。
 // `roles` は物理設計として `roles_json`（JSON配列のTEXT）に保存している。理由は
@@ -9,8 +9,9 @@ import type { Employee, Role } from "../../domain/shift";
 // 単日の求解ハーネス用に1つの型へまとめているだけであり、出勤可能時間帯は
 // 「日付に属する」データである（要件書「日付と従業員のデータ所有範囲を定める」）。
 // この層が扱う「共有する従業員データ」には含めないため、`availability` を除いた
-// `StoredEmployee` を使う。
-export type StoredEmployee = Omit<Employee, "availability">;
+// `StoredEmployee`（`$lib/domain/shift` が唯一の定義。`$lib/api/types` も同じ定義を
+// re-export している）を使う。
+export type { StoredEmployee };
 
 type EmployeeRow = {
   id: string;

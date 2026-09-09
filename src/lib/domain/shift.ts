@@ -40,5 +40,23 @@ export type Employee = Readonly<{
   maxShiftLength: number;
 }>;
 
+/**
+ * 出勤可能時間帯（`availability`）を除いた従業員データ。日付をまたいで共有する層
+ * （`src/lib/server/db/employees.ts`）とクライアント向け API の型（`src/lib/api/types.ts`）の
+ * 両方が同じ形（`Omit<Employee, "availability">`）を必要とするため、ここを唯一の定義箇所とする。
+ * どちらも既に `Employee` をここから import しており、`$lib/domain/` はクライアント・サーバー
+ * どちらからも import できるため、`$lib/server` の境界を壊さずに共有できる。
+ */
+export type StoredEmployee = Omit<Employee, "availability">;
+
 /** コマ × 役割ごとの必要人数。 */
 export type SlotRequirements = Readonly<Record<Role, number>>;
+
+/**
+ * 空（すべて0）の必要人数配列を作る。新しい日付の初期状態（`src/lib/server/db/days.ts`
+ * の `createDay`）と、クライアント側の初期表示（`+page.svelte` / `RequirementsHeatmap`）の
+ * 両方が同じ形を必要とするため、`$lib/domain/` を唯一の定義箇所とする。
+ */
+export function emptyRequirements(): readonly SlotRequirements[] {
+  return Array.from({ length: SLOT_COUNT }, () => ({ hall: 0, hot: 0, cold: 0, dishwashing: 0 }));
+}

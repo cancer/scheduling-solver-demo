@@ -1,9 +1,11 @@
+import { buildLpModel } from "$lib/solver/model";
+import type { LpModel } from "$lib/solver/model";
+import { solveSchedule } from "$lib/solver/solve";
+import type { HighsSolver } from "$lib/solver/solver-loader";
+
 import { createUpperBoundFixture } from "./fixture";
-import { buildLpModel } from "./lp";
 import { formatSolveResponse } from "./response";
-import { solveSchedule } from "./solver";
-import type { HighsSolver } from "./solver-loader";
-import type { LpModel, ScheduleFixture } from "./types";
+import type { ScheduleFixture } from "./types";
 
 type SolverFactory = () => Promise<HighsSolver>;
 
@@ -33,7 +35,7 @@ export function createWorkerHandler(
 
     let model: LpModel;
     try {
-      model = buildLpModel(fixture);
+      model = buildLpModel({ ...fixture, pinnedAssignments: [] });
     } catch (cause) {
       logFailure("model_build_failed", cause);
       return jsonResponse({ error: "solver_failed" }, 500);

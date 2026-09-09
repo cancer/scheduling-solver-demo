@@ -1,36 +1,17 @@
-// シフト管理ドメインの共通の型・定数（役割・従業員・出勤可能時間帯・必要人数）は
-// `$lib/domain/shift` へ移設した（工程2）。ここには PoC の求解ロジック固有の型
-// （LP モデル・求解結果・レスポンス整形）だけを残す。
+// PoC 測定ハーネス固有の型。LP モデル・求解ロジック本体の型は `$lib/solver/model` /
+// `$lib/domain/day` へ移設した（工程3）。ここには測定用フィクスチャとレスポンス整形
+// （`end` を含む、人が読みやすい形）だけを残す。
 import type { Employee, Role, SlotRequirements } from "$lib/domain/shift";
+import type { StoredShortage } from "$lib/domain/day";
 
 export type ScheduleFixture = Readonly<{
   employees: readonly Employee[];
   requirements: readonly SlotRequirements[];
 }>;
 
-export type ShiftCandidate = Readonly<{
-  employeeId: string;
-  role: Role;
-  start: number;
-  length: number;
-  end: number;
-  variableName: string;
-}>;
-
-export type ShortageVariable = Readonly<{
-  slot: number;
-  role: Role;
-  name: string;
-}>;
-
-export type LpModel = Readonly<{
-  lpText: string;
-  candidates: readonly ShiftCandidate[];
-  binaryVariableNames: readonly string[];
-  shortageVariables: readonly ShortageVariable[];
-  penaltyM: number;
-}>;
-
+/** PoC のレスポンス表示専用。`$lib/domain/day` の `StoredAssignment` は `end` を持たない
+ * （日をまたいで保存する型に含める理由が無いため）が、PoC の出力は読みやすさのために
+ * `end` を添える。 */
 export type ScheduleAssignment = Readonly<{
   employeeId: string;
   role: Role;
@@ -39,24 +20,11 @@ export type ScheduleAssignment = Readonly<{
   end: number;
 }>;
 
-export type ScheduleShortage = Readonly<{
-  slot: number;
-  role: Role;
-  amount: number;
-}>;
-
-export type ScheduleSolution = Readonly<{
-  status: string;
-  objectiveValue: number;
-  assignments: readonly ScheduleAssignment[];
-  shortages: readonly ScheduleShortage[];
-}>;
-
 export type SolveResponse = Readonly<{
   status: string;
   objectiveValue: number;
   assignments: readonly ScheduleAssignment[];
-  shortages: readonly ScheduleShortage[];
+  shortages: readonly StoredShortage[];
   model: Readonly<{
     binaryVariableCount: number;
     shortageVariableCount: number;
