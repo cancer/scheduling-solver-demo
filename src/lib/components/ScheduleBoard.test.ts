@@ -43,6 +43,20 @@ describe("ScheduleBoard", () => {
     expect(bar).toBeTruthy();
   });
 
+  it("keeps the full assignment label available when a bar is visually truncated", () => {
+    render(ScheduleBoard, {
+      employees: [alice],
+      solution,
+      pinnedAssignments: [],
+      ontogglepin: vi.fn(),
+    });
+
+    const bar = screen.getByRole("button", { name: /アリス/ });
+    expect(bar.getAttribute("title") ?? bar.getAttribute("aria-label")).toBe(
+      "アリス ホール 10:00-14:00",
+    );
+  });
+
   it("calls ontogglepin with the assignment when its bar is clicked", async () => {
     const ontogglepin = vi.fn();
     render(ScheduleBoard, {
