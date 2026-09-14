@@ -1,0 +1,293 @@
+/*
+ * DESIGN.md の component 定義を、この画面が使う要素・クラスへ当てる層。
+ * 値は必ず tokens.css のトークン経由で引く（生の色・px を書かない）。
+ * 非色の行（typography / rounded / spacing / shadow）は DESIGN.md が
+ * component ごとに指した尺度のキーをここで直接参照する。
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--screen-background-color);
+  color: var(--screen-text-color);
+  font-family: var(--typography-body-md-font-family);
+  font-size: var(--typography-body-md-font-size);
+  font-weight: var(--typography-body-md-font-weight);
+  line-height: var(--typography-body-md-line-height);
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+h1 {
+  font-family: var(--typography-h1-font-family);
+  font-size: var(--typography-h1-font-size);
+  font-weight: var(--typography-h1-font-weight);
+  line-height: var(--typography-h1-line-height);
+  letter-spacing: var(--typography-h1-letter-spacing);
+}
+
+h2 {
+  font-family: var(--typography-h2-font-family);
+  font-size: var(--typography-h2-font-size);
+  font-weight: var(--typography-h2-font-weight);
+  line-height: var(--typography-h2-line-height);
+  letter-spacing: var(--typography-h2-letter-spacing);
+}
+
+h3 {
+  font-family: var(--typography-h3-font-family);
+  font-size: var(--typography-h3-font-size);
+  font-weight: var(--typography-h3-font-weight);
+  line-height: var(--typography-h3-line-height);
+}
+
+/* link — 下線を保ち、色だけでリンクを示さない（DESIGN.md）。 */
+a {
+  color: var(--link-text-color);
+  text-decoration: underline;
+}
+
+a:hover {
+  color: var(--link-text-color--hover);
+}
+
+a:active {
+  color: var(--link-text-color--active);
+}
+
+/* 補助テキスト。screen の text-muted 部位。 */
+.text-muted {
+  color: var(--screen-text-muted-color);
+  font-family: var(--typography-body-sm-font-family);
+  font-size: var(--typography-body-sm-font-size);
+  font-weight: var(--typography-body-sm-font-weight);
+  line-height: var(--typography-body-sm-line-height);
+}
+
+/* === button === */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  border: none;
+  border-radius: var(--rounded-md);
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  font-family: var(--typography-label-font-family);
+  font-size: var(--typography-label-font-size);
+  font-weight: var(--typography-label-font-weight);
+  line-height: var(--typography-label-line-height);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.button-primary {
+  background: var(--button-primary-surface-color);
+  color: var(--button-primary-text-color);
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--button-primary-surface-color--hover);
+}
+
+.button-primary:active:not(:disabled) {
+  background: var(--button-primary-surface-color--active);
+}
+
+.button-primary:disabled {
+  background: var(--button-primary-surface-color--disabled);
+  color: var(--button-primary-text-color--disabled);
+}
+
+.button-danger {
+  background: var(--button-danger-surface-color);
+  color: var(--button-danger-text-color);
+}
+
+.button-danger:hover:not(:disabled) {
+  background: var(--button-danger-surface-color--hover);
+}
+
+.button-danger:active:not(:disabled) {
+  background: var(--button-danger-surface-color--active);
+}
+
+.button-danger:disabled {
+  background: var(--button-danger-surface-color--disabled);
+  color: var(--button-danger-text-color--disabled);
+}
+
+.button-neutral {
+  background: var(--button-neutral-surface-color);
+  color: var(--button-neutral-text-color);
+}
+
+.button-neutral:hover:not(:disabled) {
+  background: var(--button-neutral-surface-color--hover);
+}
+
+.button-neutral:active:not(:disabled) {
+  background: var(--button-neutral-surface-color--active);
+}
+
+.button-neutral:disabled {
+  background: var(--button-neutral-surface-color--disabled);
+  color: var(--button-neutral-text-color--disabled);
+}
+
+/* === input === */
+input,
+select {
+  border: 1px solid var(--input-border-color);
+  border-radius: var(--rounded-sm);
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-md);
+  background: var(--input-surface-color);
+  color: var(--input-text-color);
+  font-family: var(--typography-body-md-font-family);
+  font-size: var(--typography-body-md-font-size);
+  font-weight: var(--typography-body-md-font-weight);
+  line-height: var(--typography-body-md-line-height);
+}
+
+input:hover:not(:disabled),
+select:hover:not(:disabled) {
+  border-color: var(--input-border-color--hover);
+}
+
+input:disabled,
+select:disabled {
+  border-color: var(--input-border-color--disabled);
+  background: var(--input-surface-color--disabled);
+  color: var(--input-text-color--disabled);
+}
+
+input[aria-invalid="true"] {
+  border-color: var(--input-border-color--invalid);
+}
+
+input::placeholder {
+  color: var(--input-placeholder-color);
+}
+
+/* チェックボックスは UA の描画に委ねる（入力欄の枠・余白を持たない）。 */
+input[type="checkbox"] {
+  border: none;
+  padding: 0;
+  background: none;
+}
+
+/* フォームのラベルは label typography。 */
+.field {
+  display: grid;
+  gap: var(--spacing-xs);
+  font-family: var(--typography-label-font-family);
+  font-size: var(--typography-label-font-size);
+  font-weight: var(--typography-label-font-weight);
+  line-height: var(--typography-label-line-height);
+}
+
+.field-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--typography-label-font-family);
+  font-size: var(--typography-label-font-size);
+  font-weight: var(--typography-label-font-weight);
+  line-height: var(--typography-label-line-height);
+}
+
+/* === note === */
+.note {
+  border: 1px solid;
+  border-radius: var(--rounded-md);
+  padding-block: var(--spacing-sm);
+  padding-inline: var(--spacing-md);
+  font-family: var(--typography-body-sm-font-family);
+  font-size: var(--typography-body-sm-font-size);
+  font-weight: var(--typography-body-sm-font-weight);
+  line-height: var(--typography-body-sm-line-height);
+}
+
+.note-success {
+  border-color: var(--note-success-border-color);
+  background: var(--note-success-surface-color);
+  color: var(--note-success-text-color);
+}
+
+.note-warning {
+  border-color: var(--note-warning-border-color);
+  background: var(--note-warning-surface-color);
+  color: var(--note-warning-text-color);
+}
+
+.note-danger {
+  border-color: var(--note-danger-border-color);
+  background: var(--note-danger-surface-color);
+  color: var(--note-danger-text-color);
+}
+
+.note-neutral {
+  border-color: var(--note-neutral-border-color);
+  background: var(--note-neutral-surface-color);
+  color: var(--note-neutral-text-color);
+}
+
+/* === card === */
+.card {
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--rounded-md);
+  padding: var(--spacing-lg);
+  background: var(--card-surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* === badge === */
+.badge {
+  display: inline-block;
+  border-radius: var(--rounded-sm);
+  padding-block: var(--spacing-xs);
+  padding-inline: var(--spacing-sm);
+  font-family: var(--typography-caption-font-family);
+  font-size: var(--typography-caption-font-size);
+  font-weight: var(--typography-caption-font-weight);
+  line-height: var(--typography-caption-line-height);
+}
+
+.badge-success {
+  background: var(--badge-success-surface-color);
+  color: var(--badge-success-text-color);
+}
+
+.badge-warning {
+  background: var(--badge-warning-surface-color);
+  color: var(--badge-warning-text-color);
+}
+
+.badge-danger {
+  background: var(--badge-danger-surface-color);
+  color: var(--badge-danger-text-color);
+}
+
+.badge-neutral {
+  background: var(--badge-neutral-surface-color);
+  color: var(--badge-neutral-text-color);
+}

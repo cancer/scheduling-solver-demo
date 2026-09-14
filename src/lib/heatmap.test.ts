@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adjustCount,
   cellAriaLabel,
-  heatColor,
+  heatLevel,
   isHourlySlot,
   roleLabel,
   setRequirement,
@@ -61,19 +61,25 @@ describe("adjustCount", () => {
   });
 });
 
-describe("heatColor", () => {
-  it("returns a lighter color for a lower count", () => {
-    const low = heatColor(1, 6);
-    const high = heatColor(6, 6);
-    expect(low).not.toBe(high);
+describe("heatLevel", () => {
+  it("maps a headcount to the level of the same number below the saturation point", () => {
+    expect(heatLevel(0, 5)).toBe(0);
+    expect(heatLevel(1, 5)).toBe(1);
+    expect(heatLevel(4, 5)).toBe(4);
   });
 
-  it("returns the same color once the count reaches the scale max", () => {
-    expect(heatColor(6, 6)).toBe(heatColor(20, 6));
+  it("saturates at the maximum level", () => {
+    expect(heatLevel(5, 5)).toBe(5);
+    expect(heatLevel(20, 5)).toBe(5);
   });
 
-  it("returns a distinct color for zero", () => {
-    expect(heatColor(0, 6)).not.toBe(heatColor(1, 6));
+  it("never goes below the zero level", () => {
+    expect(heatLevel(-1, 5)).toBe(0);
+  });
+
+  it("saturates at a smaller maximum for the shortage scale", () => {
+    expect(heatLevel(3, 3)).toBe(3);
+    expect(heatLevel(9, 3)).toBe(3);
   });
 });
 

@@ -28,8 +28,23 @@
 
 <svelte:head><title>従業員 | シフト管理デモ</title></svelte:head>
 
-<h1>従業員</h1>
-<p>従業員マスタは日付をまたいで共有されます。</p>
-<p>名前・担当できる役割・勤務長さの下限と上限を編集すると自動保存されます。</p>
+<section class="employees-page">
+  <header class="employees-heading">
+    <h1>従業員</h1>
+    <p class="text-muted">従業員マスタは日付をまたいで共有されます。</p>
+    <p class="text-muted">名前・担当できる役割・勤務長さの下限と上限を編集すると自動保存されます。</p>
+  </header>
 
-<EmployeeManager employees={employees} onchange={handleEmployeesChange} />
+  <EmployeeManager employees={employees} onchange={handleEmployeesChange} />
+</section>
+
+<style>
+  .employees-page {
+    display: grid;
+    gap: var(--spacing-lg);
+  }
+  .employees-heading {
+    display: grid;
+    gap: var(--spacing-xs);
+  }
+</style>

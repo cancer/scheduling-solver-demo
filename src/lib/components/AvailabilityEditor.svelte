@@ -43,9 +43,9 @@
 
 <ul class="availability-editor">
   {#each employees as employee (employee.id)}
-    <li>
-      <span>{employee.name}</span>
-      <label>
+    <li class="card employee-row">
+      <span class="employee-name">{employee.name}</span>
+      <label class="field-inline">
         <input
           type="checkbox"
           checked={!isOff(availability, employee.id)}
@@ -56,7 +56,7 @@
       </label>
       {#if availability[employee.id] !== undefined}
         {@const window = availability[employee.id]}
-        <label>
+        <label class="field-inline">
           開始
           <select
             aria-label={`${employee.name} 開始`}
@@ -69,7 +69,7 @@
             {/each}
           </select>
         </label>
-        <label>
+        <label class="field-inline">
           終了
           <select
             aria-label={`${employee.name} 終了`}
@@ -86,3 +86,25 @@
     </li>
   {/each}
 </ul>
+
+<style>
+  .availability-editor {
+    display: grid;
+    gap: var(--spacing-sm);
+    list-style: none;
+  }
+  .employee-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    /* 関係の近い入力どうしは近づけ、行どうしはカードで分ける（近接）。 */
+    gap: var(--spacing-md);
+  }
+  .employee-name {
+    min-width: 6rem;
+    font-family: var(--typography-label-font-family);
+    font-size: var(--typography-label-font-size);
+    font-weight: var(--typography-label-font-weight);
+    line-height: var(--typography-label-line-height);
+  }
+</style>

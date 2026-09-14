@@ -1,0 +1,6 @@
+# oxfmt は .prettierignore を既定の ignore-path として読む（`oxfmt --help` の Ignore Options）。
+#
+# DESIGN.md は cancer/design-system からコピーした配布物である。整形して upstream と
+# 差が出ると、正の更新をコピーし直すときの差分がノイズだらけになる。プロジェクト固有
+# component の追記分だけが差分として見えるよう、整形対象から外す。
+DESIGN.md

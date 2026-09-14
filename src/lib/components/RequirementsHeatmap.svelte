@@ -4,7 +4,7 @@
   import {
     adjustCount,
     cellAriaLabel,
-    heatColor,
+    heatLevel,
     isHourlySlot,
     roleLabel,
     setRequirement,
@@ -16,8 +16,9 @@
   // ドラッグで塗った内容は離した時点でまとめて `oncommit` する（決定18）。
   // キーボード操作（矢印キーで増減）と読み上げ（役割・時刻・人数のラベル）の
   // 経路は決定17が払うと認めた代償であり、外さない。
+  // 色は DESIGN.md の heat-cell トークンが持つ。ここは段（level）だけを当てる。
 
-  const SCALE_MAX = 6;
+  const MAX_LEVEL = 5;
 
   let { requirements, oncommit }: {
     requirements: readonly SlotRequirements[];
@@ -71,7 +72,7 @@
 <svelte:window onpointerup={endPaint} />
 
 <div class="heatmap">
-  <label>
+  <label class="field brush">
     塗る値
     <input type="number" min="0" max="99" bind:value={brushValue} />
   </label>
@@ -95,7 +96,7 @@
           <button
             type="button"
             class="cell"
-            style={`background-color: ${heatColor(requirement[role], SCALE_MAX)};`}
+            data-level={heatLevel(requirement[role], MAX_LEVEL)}
             aria-label={cellAriaLabel(role, slot, requirement[role])}
             onpointerdown={() => startPaint(role, slot)}
             onpointerenter={(event) => continuePaint(role, slot, event.buttons)}
@@ -111,8 +112,13 @@
 
 <style>
   .heatmap {
+    display: grid;
+    gap: var(--spacing-md);
     width: 100%;
     min-width: 0;
+  }
+  .brush {
+    width: 8rem;
   }
   .grid {
     display: grid;
@@ -121,7 +127,10 @@
     min-width: 0;
     /* The shared 7rem label track fits role labels and keeps every time column aligned; long labels wrap inside it. */
     grid-template-columns: 7rem repeat(28, minmax(0, 1fr));
+    /* 1px の隙間から地が透けることで格子線になる。線の色はトークンで引く。 */
     gap: 1px;
+    background: var(--grid-line-color);
+    border: 1px solid var(--grid-line-color);
   }
   .scroll-container {
     min-width: 0;
@@ -131,20 +140,48 @@
   .cell {
     min-width: 0;
     border: none;
-    font-size: 0.75rem;
-    padding: 0.25rem 0;
+    padding-block: var(--spacing-xs);
+    padding-inline: 0;
+    font-family: var(--typography-caption-font-family);
+    font-size: var(--typography-caption-font-size);
+    font-weight: var(--typography-caption-font-weight);
+    line-height: var(--typography-caption-line-height);
     cursor: pointer;
   }
-  .cell:focus-visible {
-    outline: 3px solid #111;
-    outline-offset: -3px;
+  .cell[data-level="0"] {
+    background: var(--heat-cell-level-0-surface-color);
+    color: var(--heat-cell-level-0-text-color);
+  }
+  .cell[data-level="1"] {
+    background: var(--heat-cell-level-1-surface-color);
+    color: var(--heat-cell-level-1-text-color);
+  }
+  .cell[data-level="2"] {
+    background: var(--heat-cell-level-2-surface-color);
+    color: var(--heat-cell-level-2-text-color);
+  }
+  .cell[data-level="3"] {
+    background: var(--heat-cell-level-3-surface-color);
+    color: var(--heat-cell-level-3-text-color);
+  }
+  .cell[data-level="4"] {
+    background: var(--heat-cell-level-4-surface-color);
+    color: var(--heat-cell-level-4-text-color);
+  }
+  .cell[data-level="5"] {
+    background: var(--heat-cell-level-5-surface-color);
+    color: var(--heat-cell-level-5-text-color);
   }
   .role-header,
   .time-header,
   .corner {
     min-width: 0;
-    font-size: 0.7rem;
-    padding: 0.25rem;
+    padding: var(--spacing-xs);
+    color: var(--grid-header-text-color);
+    font-family: var(--typography-caption-font-family);
+    font-size: var(--typography-caption-font-size);
+    font-weight: var(--typography-caption-font-weight);
+    line-height: var(--typography-caption-line-height);
   }
   .time-header {
     text-align: center;
@@ -158,8 +195,11 @@
   }
   .role-header,
   .corner {
-    background: white;
+    background: var(--screen-surface-color);
     overflow-wrap: anywhere;
+  }
+  .time-header {
+    background: var(--screen-surface-color);
   }
 
   @media (max-width: 66.75rem) {

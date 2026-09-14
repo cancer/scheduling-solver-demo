@@ -36,11 +36,11 @@
 
 <section class="day-shell" aria-labelledby="day-title">
   <div class="day-heading">
-    <div>
-      <p class="eyebrow">日別シフト</p>
+    <div class="day-title">
+      <p class="text-muted">日別シフト</p>
       <h1 id="day-title">{data.date}のシフト管理</h1>
     </div>
-    <label>
+    <label class="field">
       対象日付
       <input
         aria-label="対象日付"
@@ -51,19 +51,22 @@
     </label>
   </div>
 
-  <nav aria-label="日別メニュー">
+  <nav class="day-nav" aria-label="日別メニュー">
     <ul class="tabs">
       {#each tabs as tab (tab.href)}
         <li>
-          <a href={tab.href} aria-current={activePath === tab.href ? "page" : undefined}>
+          <a
+            class="tab"
+            href={tab.href}
+            aria-current={activePath === tab.href ? "page" : undefined}
+          >
             {tab.label}
           </a>
         </li>
       {/each}
     </ul>
+    <a href="/employees">従業員管理</a>
   </nav>
-
-  <a href="/employees">従業員管理</a>
 
   {#if children}{@render children()}{/if}
 </section>
@@ -71,45 +74,53 @@
 <style>
   .day-shell {
     display: grid;
-    gap: 1.25rem;
+    gap: var(--spacing-lg);
   }
   .day-heading {
     display: flex;
     flex-wrap: wrap;
     align-items: end;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--spacing-md);
   }
-  .day-heading label {
+  .day-title {
     display: grid;
-    gap: 0.35rem;
+    gap: var(--spacing-xs);
   }
-  .eyebrow {
-    margin: 0;
-    color: #627d98;
-    font-size: 0.85rem;
-  }
-  h1 {
-    margin: 0;
+  .day-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    border-bottom: 1px solid var(--screen-border-color);
   }
   .tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 0;
+    gap: var(--spacing-xs);
     padding: 0;
     list-style: none;
-    border-bottom: 1px solid #bcccdc;
   }
-  .tabs a {
+  /* tab は本文中の遷移ではないので link のトークンを借りない（DESIGN.md）。 */
+  .tab {
     display: block;
-    padding: 0.65rem 0.85rem;
-    color: #334e68;
+    /* 非色の行は尺度のキーを直接引く（DESIGN.md: tab padding = sm / md）。 */
+    padding-block: var(--spacing-sm);
+    padding-inline: var(--spacing-md);
+    border-bottom: 3px solid transparent;
+    color: var(--tab-text-color);
+    font-family: var(--typography-label-font-family);
+    font-size: var(--typography-label-font-size);
+    font-weight: var(--typography-label-font-weight);
+    line-height: var(--typography-label-line-height);
     text-decoration: none;
   }
-  .tabs a[aria-current="page"] {
-    border-bottom: 3px solid #0b7285;
-    color: #102a43;
-    font-weight: 700;
+  .tab:hover {
+    color: var(--tab-text-color--hover);
+  }
+  .tab[aria-current="page"] {
+    border-bottom-color: var(--tab-current-indicator-color);
+    color: var(--tab-current-text-color);
   }
 </style>
