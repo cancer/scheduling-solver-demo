@@ -77,13 +77,16 @@
   </label>
 
   <div class="scroll-container">
-    <div
-      class="grid"
-      style={`grid-template-columns: minmax(7rem, max-content) repeat(${requirements.length}, minmax(4.25rem, 1fr));`}
-    >
+    <div class="grid">
       <div class="corner"></div>
       {#each displayed as _, slot (slot)}
-        <div class="time-header">{#if isHourlySlot(slot)}{slotStartLabel(slot)}{/if}</div>
+        <div
+          class="time-header"
+          class:hourly={isHourlySlot(slot)}
+          class:intermediate={!isHourlySlot(slot)}
+        >
+          {#if isHourlySlot(slot)}{slotStartLabel(slot)}{/if}
+        </div>
       {/each}
 
       {#each ROLES as role (role)}
@@ -107,16 +110,26 @@
 </div>
 
 <style>
+  .heatmap {
+    width: 100%;
+    min-width: 0;
+  }
   .grid {
     display: grid;
+    /* main is capped at 72rem, so flexible tracks keep all 28 slots inside it on desktop. */
+    width: 100%;
+    min-width: 0;
+    /* The shared 7rem label track fits role labels and keeps every time column aligned; long labels wrap inside it. */
+    grid-template-columns: 7rem repeat(28, minmax(0, 1fr));
     gap: 1px;
-    min-width: max-content;
   }
   .scroll-container {
+    min-width: 0;
     max-width: 100%;
     overflow-x: auto;
   }
   .cell {
+    min-width: 0;
     border: none;
     font-size: 0.75rem;
     padding: 0.25rem 0;
@@ -129,14 +142,47 @@
   .role-header,
   .time-header,
   .corner {
+    min-width: 0;
     font-size: 0.7rem;
     padding: 0.25rem;
   }
+  .time-header {
+    text-align: center;
+    white-space: nowrap;
+  }
+  .time-header.hourly {
+    grid-column: span 2;
+  }
+  .time-header.intermediate {
+    display: none;
+  }
   .role-header,
   .corner {
-    position: sticky;
-    left: 0;
-    z-index: 1;
     background: white;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 66.75rem) {
+    /*
+     * Flexible columns start only above this calculated boundary: 7rem label +
+     * 28 × 2rem readable slots + 28 × 1px gaps + 2rem main side margins =
+     * 7rem + 56rem + 1.75rem + 2rem = 66.75rem (at the default 16px root size).
+     * A 2rem slot leaves room for a two-digit count at the component's font size
+     * and horizontal padding; below the boundary, the 4.25rem slots scroll instead.
+     */
+    .scroll-container {
+      overflow-x: auto;
+    }
+    .grid {
+      width: max-content;
+      min-width: max-content;
+      grid-template-columns: 7rem repeat(28, minmax(4.25rem, 1fr));
+    }
+    .role-header,
+    .corner {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+    }
   }
 </style>

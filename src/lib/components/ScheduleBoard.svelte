@@ -49,7 +49,11 @@
             <div class="row-label">従業員 / 役割</div>
             <div class="track track-header">
               {#each timelineSlots as slot (slot)}
-                <div class="time-header">
+                <div
+                  class="time-header"
+                  class:hourly={isHourlySlot(slot)}
+                  class:intermediate={!isHourlySlot(slot)}
+                >
                   {#if isHourlySlot(slot)}{slotStartLabel(slot)}{/if}
                 </div>
               {/each}
@@ -68,6 +72,18 @@
                   class="bar"
                   class:pinned={isPinned(pinnedAssignments, assignment)}
                   aria-pressed={isPinned(pinnedAssignments, assignment)}
+                  aria-label={assignmentLabel(
+                    employeeName(assignment.employeeId),
+                    assignment.role,
+                    assignment.start,
+                    assignment.length,
+                  )}
+                  title={assignmentLabel(
+                    employeeName(assignment.employeeId),
+                    assignment.role,
+                    assignment.start,
+                    assignment.length,
+                  )}
                   style={assignmentBarStyle(assignment)}
                   onclick={() => ontogglepin(assignment)}
                 >
@@ -88,13 +104,14 @@
     <section aria-labelledby="shortages-heading">
       <h2 id="shortages-heading">不足人数</h2>
       <div class="shortage-scroll">
-        <div
-          class="shortages"
-          style={`grid-template-columns: minmax(7rem, max-content) repeat(${shortageGrid.length}, minmax(4.25rem, 1fr));`}
-        >
+        <div class="shortages">
           <div class="corner"></div>
           {#each shortageGrid as _, slot (slot)}
-            <div class="time-header">
+            <div
+              class="time-header"
+              class:hourly={isHourlySlot(slot)}
+              class:intermediate={!isHourlySlot(slot)}
+            >
               {#if isHourlySlot(slot)}{slotStartLabel(slot)}{/if}
             </div>
           {/each}
@@ -119,46 +136,65 @@
 <style>
   .schedule-board {
     display: grid;
+    width: 100%;
     gap: 1.5rem;
+    min-width: 0;
   }
   .timeline-scroll,
   .shortage-scroll {
+    min-width: 0;
     max-width: 100%;
     overflow-x: auto;
   }
   .timeline {
-    min-width: calc(7rem + 28 * 4.25rem);
+    /* main is capped at 72rem; flexible tracks prevent desktop content from widening past it. */
+    width: 100%;
+    min-width: 0;
   }
   .timeline-row {
     display: grid;
-    grid-template-columns: minmax(7rem, max-content) minmax(calc(28 * 4.25rem), 1fr);
+    width: 100%;
+    min-width: 0;
+    /* The shared 7rem label track fits row labels and keeps the header and every assignment aligned. */
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 1px;
   }
   .row-label {
-    position: sticky;
-    left: 0;
-    z-index: 2;
+    min-width: 0;
     padding: 0.5rem;
     background: white;
     border-bottom: 1px solid #d0d0d0;
+    overflow-wrap: anywhere;
   }
   .track {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(28, minmax(4.25rem, 1fr));
-    min-width: calc(28 * 4.25rem);
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(28, minmax(0, 1fr));
+    gap: 1px;
     min-height: 3.5rem;
   }
   .track-header {
     min-height: 2rem;
   }
   .time-header {
+    min-width: 0;
     min-height: 2rem;
     padding: 0.25rem;
     font-size: 0.75rem;
     text-align: center;
+    white-space: nowrap;
+  }
+  .time-header.hourly {
+    grid-column: span 2;
+  }
+  .time-header.intermediate {
+    display: none;
   }
   .track-slot {
     grid-row: 1;
+    min-width: 0;
     min-height: 3.5rem;
     border-left: 1px solid #e0e0e0;
     border-bottom: 1px solid #d0d0d0;
@@ -189,10 +225,13 @@
   }
   .shortages {
     display: grid;
-    min-width: max-content;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 7rem repeat(28, minmax(0, 1fr));
     gap: 1px;
   }
   .shortage-cell {
+    min-width: 0;
     min-height: 2rem;
     padding: 0.25rem;
     font-size: 0.75rem;
@@ -200,10 +239,51 @@
   }
   .role-header,
   .corner {
-    position: sticky;
-    left: 0;
-    z-index: 1;
+    min-width: 0;
     padding: 0.25rem 0.5rem;
     background: white;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 66.75rem) {
+    /*
+     * Flexible columns start only above this calculated boundary: 7rem label +
+     * 28 × 2rem readable slots + 28 × 1px gaps + 2rem main side margins =
+     * 7rem + 56rem + 1.75rem + 2rem = 66.75rem (at the default 16px root size).
+     * A 2rem slot leaves room for a two-digit count at the component's font size
+     * and horizontal padding; below the boundary, the 4.25rem slots scroll instead.
+     */
+    .timeline-scroll,
+    .shortage-scroll {
+      overflow-x: auto;
+    }
+    .timeline {
+      width: max-content;
+      min-width: max-content;
+    }
+    .timeline-row {
+      grid-template-columns: 7rem minmax(calc(28 * 4.25rem), 1fr);
+    }
+    .track {
+      width: auto;
+      min-width: calc(28 * 4.25rem);
+      grid-template-columns: repeat(28, minmax(4.25rem, 1fr));
+    }
+    .shortages {
+      width: max-content;
+      min-width: max-content;
+      grid-template-columns: 7rem repeat(28, minmax(4.25rem, 1fr));
+    }
+    .row-label,
+    .role-header,
+    .corner {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+    }
+    .role-header,
+    .corner {
+      z-index: 1;
+    }
   }
 </style>
