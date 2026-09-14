@@ -48,22 +48,15 @@ export function adjustCount(current: number, delta: number): number {
   return clampCount(current + delta);
 }
 
-const HEAT_HUE = 210; // 単一色相（青系）の順次スケール。役割ごとの色分けはしない。
-const ZERO_LIGHTNESS = 96;
-const MIN_LIGHTNESS = 38;
-
 /**
- * 必要人数を単一色相の順次スケール（淡い→濃い）へ写す。5人以上を色だけで
- * 区別しない（決定17の代償）ため、色はあくまで大小の目安であり、セル側で
- * 数値を必ず併記する前提の関数。`scaleMax` 以上は同じ色に飽和させる。
+ * 人数を、DESIGN.md が段階 variant として定義したセルの level（`0`〜`maxLevel`）へ写す。
+ * 色そのものはここで決めない。色は `heat-cell-level-<n>-*` / `shortage-cell-level-<n>-*`
+ * トークンが持ち、この関数はどの段を引くかだけを返す（生の色を直書きしないため）。
+ * `maxLevel` 以上は同じ段に飽和するので、色だけでは飽和点より上を区別できない
+ * （決定17の代償）。セル側で数値を必ず併記する前提の関数。
  */
-export function heatColor(count: number, scaleMax: number): string {
-  if (count <= MIN_COUNT) {
-    return `hsl(${HEAT_HUE} 20% ${ZERO_LIGHTNESS}%)`;
-  }
-  const ratio = Math.min(1, count / scaleMax);
-  const lightness = ZERO_LIGHTNESS - ratio * (ZERO_LIGHTNESS - MIN_LIGHTNESS);
-  return `hsl(${HEAT_HUE} 70% ${lightness}%)`;
+export function heatLevel(count: number, maxLevel: number): number {
+  return Math.min(maxLevel, Math.max(MIN_COUNT, count));
 }
 
 /** 指定したコマ・役割の必要人数だけを更新した新しい配列を返す（不変更新）。 */

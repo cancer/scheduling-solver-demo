@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 import RequirementsHeatmap from "./RequirementsHeatmap.svelte";
 import { emptyRequirements } from "../domain/shift";
+import { setRequirement } from "../heatmap";
 
 describe("RequirementsHeatmap", () => {
   it("does not commit while a drag is in progress, and commits all painted cells together on release", async () => {
@@ -79,6 +80,22 @@ describe("RequirementsHeatmap", () => {
 
     const cell = screen.getByRole("button", { name: "ホール 10:00 必要人数0人" });
     expect(cell.textContent).toContain("0");
+  });
+
+  it("puts the headcount on the heat-cell level that the design tokens colour", () => {
+    const requirements = setRequirement(
+      setRequirement(emptyRequirements(), "hall", 0, 2),
+      "hall",
+      2,
+      9,
+    );
+    render(RequirementsHeatmap, { requirements, oncommit: vi.fn() });
+
+    const two = screen.getByRole("button", { name: "ホール 10:00 必要人数2人" });
+    const saturated = screen.getByRole("button", { name: "ホール 11:00 必要人数9人" });
+    expect(two.getAttribute("data-level")).toBe("2");
+    // 飽和点（level-5）より上は同じ段に落ちる。色だけでは区別できない。
+    expect(saturated.getAttribute("data-level")).toBe("5");
   });
 
   it("shows hourly labels while leaving the intervening half-hour headers blank", () => {

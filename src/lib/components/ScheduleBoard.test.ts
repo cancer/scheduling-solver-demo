@@ -118,6 +118,43 @@ describe("ScheduleBoard", () => {
     expect((bar as HTMLElement).style.gridColumn).toBe("1 / span 8");
   });
 
+  it("puts the shortage on the shortage-cell level that the design tokens colour", () => {
+    render(ScheduleBoard, {
+      employees: [alice],
+      solution,
+      pinnedAssignments: [],
+      ontogglepin: vi.fn(),
+    });
+
+    expect(screen.getByLabelText("ホール 12:00 不足2人").getAttribute("data-level")).toBe("2");
+    // 不足なしは level-0（状態が無いことを neutral の段で示す）。
+    expect(screen.getByLabelText("ホール 10:00 不足0人").getAttribute("data-level")).toBe("0");
+  });
+
+  it("switches the bar to the pinned variant instead of layering an extra outline", () => {
+    const pinned = solution.assignments[0];
+    const { rerender } = render(ScheduleBoard, {
+      employees: [alice],
+      solution,
+      pinnedAssignments: [],
+      ontogglepin: vi.fn(),
+    });
+
+    const bar = screen.getByRole("button", { name: /アリス.*ホール/ });
+    expect(bar.classList.contains("pinned")).toBe(false);
+
+    rerender({
+      employees: [alice],
+      solution,
+      pinnedAssignments: [pinned],
+      ontogglepin: vi.fn(),
+    });
+
+    expect(
+      screen.getByRole("button", { name: /アリス.*ホール/ }).classList.contains("pinned"),
+    ).toBe(true);
+  });
+
   it("uses the same hourly time headers for the shortage grid", () => {
     render(ScheduleBoard, {
       employees: [alice],

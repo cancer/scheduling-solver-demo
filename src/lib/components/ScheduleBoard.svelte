@@ -2,7 +2,7 @@
   import { ROLES, SLOT_COUNT } from "$lib/domain/shift";
   import type { StoredAssignment, StoredSolution } from "$lib/domain/day";
   import type { StoredEmployee } from "$lib/api/types";
-  import { heatColor, isHourlySlot, roleLabel, slotStartLabel } from "$lib/heatmap";
+  import { heatLevel, isHourlySlot, roleLabel, slotStartLabel } from "$lib/heatmap";
   import { isPinned } from "$lib/pinning";
   import {
     assignmentBarStyle,
@@ -15,8 +15,10 @@
   // 切り替える（画面の契約）。ロジックは `$lib/schedule` と `$lib/pinning` の
   // 純関数に寄せ、ここは表示とイベント配線だけを持つ（決定5）。
   // 連続クリックの制御（求解中フラグ・拒否・古い応答の破棄）は入れない（決定7）。
+  // 色は DESIGN.md の shortage-cell / shift-bar トークンが持つ。ここは段と
+  // variant（固定の有無）だけを当てる。
 
-  const SHORTAGE_SCALE_MAX = 3;
+  const SHORTAGE_MAX_LEVEL = 3;
   const timelineSlots = Array.from({ length: SLOT_COUNT }, (_, slot) => slot);
 
   let { employees, solution, pinnedAssignments, ontogglepin }: {
@@ -39,9 +41,9 @@
 
 <div class="schedule-board">
   {#if solution === null}
-    <p>未求解</p>
+    <p class="note note-neutral">未求解</p>
   {:else}
-    <section aria-labelledby="assignments-heading">
+    <section class="board-section" aria-labelledby="assignments-heading">
       <h2 id="assignments-heading">勤務割当</h2>
       <div class="timeline-scroll">
         <div class="timeline">
@@ -101,7 +103,7 @@
       </div>
     </section>
 
-    <section aria-labelledby="shortages-heading">
+    <section class="board-section" aria-labelledby="shortages-heading">
       <h2 id="shortages-heading">不足人数</h2>
       <div class="shortage-scroll">
         <div class="shortages">
@@ -120,7 +122,7 @@
             {#each shortageGrid as slotShortage, slot (slot)}
               <div
                 class="shortage-cell"
-                style={`background-color: ${heatColor(slotShortage[role], SHORTAGE_SCALE_MAX)};`}
+                data-level={heatLevel(slotShortage[role], SHORTAGE_MAX_LEVEL)}
                 aria-label={shortageAriaLabel(role, slot, slotShortage[role])}
               >
                 {slotShortage[role]}
@@ -137,8 +139,20 @@
   .schedule-board {
     display: grid;
     width: 100%;
-    gap: 1.5rem;
+    gap: var(--spacing-xl);
     min-width: 0;
+  }
+  .board-section {
+    display: grid;
+    gap: var(--spacing-sm);
+    min-width: 0;
+  }
+  .board-section h2 {
+    font-family: var(--typography-label-font-family);
+    font-size: var(--typography-label-font-size);
+    font-weight: var(--typography-label-font-weight);
+    line-height: var(--typography-label-line-height);
+    color: var(--screen-text-muted-color);
   }
   .timeline-scroll,
   .shortage-scroll {
@@ -150,6 +164,8 @@
     /* main is capped at 72rem; flexible tracks prevent desktop content from widening past it. */
     width: 100%;
     min-width: 0;
+    border: 1px solid var(--grid-line-color);
+    background: var(--screen-surface-color);
   }
   .timeline-row {
     display: grid;
@@ -161,9 +177,14 @@
   }
   .row-label {
     min-width: 0;
-    padding: 0.5rem;
-    background: white;
-    border-bottom: 1px solid #d0d0d0;
+    padding: var(--spacing-sm);
+    background: var(--screen-surface-color);
+    border-right: 1px solid var(--grid-line-color);
+    border-bottom: 1px solid var(--grid-line-color);
+    font-family: var(--typography-body-sm-font-family);
+    font-size: var(--typography-body-sm-font-size);
+    font-weight: var(--typography-body-sm-font-weight);
+    line-height: var(--typography-body-sm-line-height);
     overflow-wrap: anywhere;
   }
   .track {
@@ -181,8 +202,12 @@
   .time-header {
     min-width: 0;
     min-height: 2rem;
-    padding: 0.25rem;
-    font-size: 0.75rem;
+    padding: var(--spacing-xs);
+    color: var(--grid-header-text-color);
+    font-family: var(--typography-caption-font-family);
+    font-size: var(--typography-caption-font-size);
+    font-weight: var(--typography-caption-font-weight);
+    line-height: var(--typography-caption-line-height);
     text-align: center;
     white-space: nowrap;
   }
@@ -196,53 +221,88 @@
     grid-row: 1;
     min-width: 0;
     min-height: 3.5rem;
-    border-left: 1px solid #e0e0e0;
-    border-bottom: 1px solid #d0d0d0;
+    border-left: 1px solid var(--grid-line-color);
+    border-bottom: 1px solid var(--grid-line-color);
   }
+  /* shift-bar。固定の有無は variant なので、色そのものを差し替える
+     （枠線の追加や太字のような後付けの差分にしない）。 */
   .bar {
     grid-row: 1;
     align-self: center;
     z-index: 1;
     min-width: 0;
-    margin: 0.25rem;
+    margin: var(--spacing-xs);
     overflow: hidden;
-    border: 1px solid #075985;
-    border-radius: 0.35rem;
-    padding: 0.5rem;
-    background: #bae6fd;
-    color: #082f49;
+    border: 1px solid var(--shift-bar-free-border-color);
+    border-radius: var(--rounded-sm);
+    padding-block: var(--spacing-xs);
+    padding-inline: var(--spacing-sm);
+    background: var(--shift-bar-free-surface-color);
+    color: var(--shift-bar-free-text-color);
+    font-family: var(--typography-label-font-family);
+    font-size: var(--typography-label-font-size);
+    font-weight: var(--typography-label-font-weight);
+    line-height: var(--typography-label-line-height);
     cursor: pointer;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-  .bar:focus-visible {
-    outline: 3px solid #111;
-    outline-offset: 2px;
-  }
   .bar.pinned {
-    outline: 2px solid black;
-    font-weight: bold;
+    border-color: var(--shift-bar-pinned-border-color);
+    background: var(--shift-bar-pinned-surface-color);
+    color: var(--shift-bar-pinned-text-color);
   }
   .shortages {
     display: grid;
     width: 100%;
     min-width: 0;
     grid-template-columns: 7rem repeat(28, minmax(0, 1fr));
+    /* 1px の隙間から地が透けることで格子線になる。線の色はトークンで引く。 */
     gap: 1px;
+    background: var(--grid-line-color);
+    border: 1px solid var(--grid-line-color);
   }
   .shortage-cell {
     min-width: 0;
     min-height: 2rem;
-    padding: 0.25rem;
-    font-size: 0.75rem;
+    padding: var(--spacing-xs);
+    font-family: var(--typography-caption-font-family);
+    font-size: var(--typography-caption-font-size);
+    font-weight: var(--typography-caption-font-weight);
+    line-height: var(--typography-caption-line-height);
     text-align: center;
+  }
+  .shortage-cell[data-level="0"] {
+    background: var(--shortage-cell-level-0-surface-color);
+    color: var(--shortage-cell-level-0-text-color);
+  }
+  .shortage-cell[data-level="1"] {
+    background: var(--shortage-cell-level-1-surface-color);
+    color: var(--shortage-cell-level-1-text-color);
+  }
+  .shortage-cell[data-level="2"] {
+    background: var(--shortage-cell-level-2-surface-color);
+    color: var(--shortage-cell-level-2-text-color);
+  }
+  .shortage-cell[data-level="3"] {
+    background: var(--shortage-cell-level-3-surface-color);
+    color: var(--shortage-cell-level-3-text-color);
   }
   .role-header,
   .corner {
     min-width: 0;
-    padding: 0.25rem 0.5rem;
-    background: white;
+    padding-block: var(--spacing-xs);
+    padding-inline: var(--spacing-sm);
+    background: var(--screen-surface-color);
+    color: var(--grid-header-text-color);
+    font-family: var(--typography-caption-font-family);
+    font-size: var(--typography-caption-font-size);
+    font-weight: var(--typography-caption-font-weight);
+    line-height: var(--typography-caption-line-height);
     overflow-wrap: anywhere;
+  }
+  .shortages .time-header {
+    background: var(--screen-surface-color);
   }
 
   @media (max-width: 66.75rem) {

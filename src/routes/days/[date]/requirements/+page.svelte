@@ -45,20 +45,27 @@
 
 <section class="page-section">
   <h2>必要人数</h2>
-  <p>
+  <p class="text-muted">
     30分コマを列、役割を行として、コマごとの必要人数を入力します。塗る値を選び、ドラッグでまとめて塗れます。
     セルにフォーカスして矢印キーを押すと1人ずつ増減し、変更は自動保存されます。
   </p>
-  <RequirementsHeatmap requirements={day.requirements} oncommit={handleCommit} />
+  <div class="card page-panel">
+    <RequirementsHeatmap requirements={day.requirements} oncommit={handleCommit} />
+  </div>
 </section>
 
 <style>
   .page-section {
     display: grid;
-    gap: 1rem;
+    gap: var(--spacing-md);
+    min-width: 0;
   }
-  .page-section h2,
-  .page-section p {
-    margin: 0;
+  .page-section h2 {
+    font-size: var(--typography-h3-font-size);
+    font-weight: var(--typography-h3-font-weight);
+    line-height: var(--typography-h3-line-height);
+  }
+  .page-panel {
+    min-width: 0;
   }
 </style>

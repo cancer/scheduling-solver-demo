@@ -100,15 +100,16 @@
   <ul>
     {#each employees as employee (employee.id)}
       {@const draft = lengthDraft(employee)}
-      <li>
+      <li class="card employee-row">
         <input
+          class="name-input"
           type="text"
           value={employee.name}
           aria-label={`${employee.name}の名前`}
           onchange={(event) => handleRename(employee, event.currentTarget.value)}
         />
         {#each ROLES as role (role)}
-          <label>
+          <label class="field-inline">
             <input
               type="checkbox"
               checked={employee.roles.includes(role)}
@@ -118,7 +119,7 @@
             {roleLabel(role)}
           </label>
         {/each}
-        <label>
+        <label class="field length-field">
           勤務長さ下限（時間）
           <input
             type="number"
@@ -131,7 +132,7 @@
             onchange={(event) => handleLengthChange(employee, "min", event.currentTarget.value)}
           />
         </label>
-        <label>
+        <label class="field length-field">
           勤務長さ上限（時間）
           <input
             type="number"
@@ -145,37 +146,62 @@
           />
         </label>
         {#if lengthErrors[employee.id] !== undefined}
-          <p class="length-error" role="alert">{lengthErrors[employee.id]}</p>
+          <p class="note note-danger length-error" role="alert">{lengthErrors[employee.id]}</p>
         {/if}
-        <button type="button" onclick={() => handleRemove(employee.id)}>
+        <button
+          type="button"
+          class="button button-danger remove-button"
+          onclick={() => handleRemove(employee.id)}
+        >
           {employee.name}を削除
         </button>
       </li>
     {/each}
   </ul>
 
-  <div class="add-form">
-    <label>
+  <div class="card add-form">
+    <label class="field">
       新しい従業員名
       <input type="text" bind:value={newName} />
     </label>
-    <button type="button" onclick={handleAdd}>追加</button>
+    <button type="button" class="button button-primary" onclick={handleAdd}>追加</button>
   </div>
 </div>
 
 <style>
   .employee-manager {
     display: grid;
-    gap: 1rem;
+    gap: var(--spacing-lg);
   }
-  li {
+  ul {
+    display: grid;
+    gap: var(--spacing-sm);
+    list-style: none;
+  }
+  .employee-row {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: end;
+    /* 関係の近い入力どうしは近づけ、行どうしはカードで分ける（近接）。 */
+    gap: var(--spacing-md);
+  }
+  .name-input {
+    flex: 1 1 10rem;
+    min-width: 0;
+  }
+  .length-field {
+    width: 11rem;
+  }
+  .remove-button {
+    margin-inline-start: auto;
   }
   .length-error {
     flex-basis: 100%;
-    color: #a40000;
+  }
+  .add-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--spacing-md);
   }
 </style>

@@ -46,7 +46,7 @@
 
 <section class="page-section">
   <h2>出勤可能時間帯</h2>
-  <p>
+  <p class="text-muted">
     当日の出勤可能時間帯は従業員ごとに1区間で入力します。未入力はその日の休みとして扱われ、変更は自動保存されます。
   </p>
   <AvailabilityEditor {employees} availability={day.availability} oncommit={handleCommit} />
@@ -55,10 +55,12 @@
 <style>
   .page-section {
     display: grid;
-    gap: 1rem;
+    gap: var(--spacing-md);
+    min-width: 0;
   }
-  .page-section h2,
-  .page-section p {
-    margin: 0;
+  .page-section h2 {
+    font-size: var(--typography-h3-font-size);
+    font-weight: var(--typography-h3-font-weight);
+    line-height: var(--typography-h3-line-height);
   }
 </style>
