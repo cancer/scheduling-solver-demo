@@ -147,6 +147,12 @@ via Istanbul instead."）。2プロジェクト構成にした時点で、worker
 HTML を JS として解析しようとして構文エラーで落ちる。`.svelte` にはこの対処をしていない
 （理由は次項）。
 
+**`src/lib/styles/*.css` には `coverage.exclude` を足していない。** `src/app.html` と同じく
+どのテストからも import されないが、`--coverage.exclude=src/app.html` だけの状態で
+`--coverage.include=src/**` の下でも `npm run coverage` は落ちず、`.css` は
+`coverage-final.json` にも text レポートにも現れないことを実測した。`.css` は「未カバー
+ファイルの静的解析」パスに乗らない。`.html` と同じ対処を予防的に足さない。
+
 **`.svelte` はどのテストからも import されない状態を作らない。** 「未カバーファイルの
 静的解析」パスは、テストされない `.svelte` を svelte プラグインを経由しない変換にかけて
 構文エラーで落とす（実際に、どのテストからも import していなかった `src/routes/+page.svelte`
@@ -197,8 +203,76 @@ HTML を JS として解析しようとして構文エラーで落ちる。`.sve
   `src/poc/` の各モジュールはここを import する（`src/poc/types.ts` には LP/求解結果固有の型
   だけが残る）。
 - `src/lib/server/db/`: D1 アクセス層。「D1 スキーマと初期化（工程2）」の節を参照。
+- `src/lib/styles/`: デザインシステムの適用層。「デザインシステム（`DESIGN.md`）」の節を参照。
 - `src/app.html` / `src/app.d.ts`: SvelteKit の規約ファイル。`app.d.ts` の `Platform.env.DB` は
   D1 バインディングの型で、`@cloudflare/workers-types` の `D1Database` を参照する。
+
+## デザインシステム（`DESIGN.md`）
+
+画面の見た目は `DESIGN.md` を唯一の正として決める。これは
+<https://github.com/cancer/design-system> からコピーした配布物で、形式は
+[google-labs-code/design.md](https://github.com/google-labs-code/design.md)（alpha）に準拠する。
+トークンの層は **primitive（値の尺度）→ 役割 → component** で、色は必ず役割層
+（`primary` / `danger` / `warning` / `success` / `neutral`）を経由し、primitive を直接参照しない。
+
+### 3つのファイルの役割分担
+
+| ファイル                    | 持つもの                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `DESIGN.md`                 | トークンの正。フロントマターが機械可読な定義、本文がその意味                    |
+| `src/lib/styles/tokens.css` | `DESIGN.md` のフロントマターを CSS カスタムプロパティへ写したもの               |
+| `src/lib/styles/base.css`   | トークンを要素・クラス（`.button` / `.note` / `.card` / `.badge` 等）へ当てる層 |
+
+両 CSS は `src/routes/+layout.svelte` が import する（全画面に効く）。
+
+`tokens.css` は `DESIGN.md` から機械的に写したものなので、**直接編集しない**。値を変えるときは
+`DESIGN.md` を直してから写す。生成器は正リポジトリ側に属し、ここへは置かない
+（正リポジトリの CLAUDE.md「配布物は `DESIGN.md` 1枚」）。そのため写しは手作業になり、
+`DESIGN.md` と `tokens.css` は乖離しうる。**片方を触ったらもう片方も合わせること。**
+
+非色の行（typography / rounded / spacing / shadow）は `tokens.css` に component 単位の変数を
+作らず、`base.css` と各 `.svelte` が尺度のキー（`var(--spacing-lg)` / `var(--rounded-md)` 等）を
+直接引く。`DESIGN.md` がこれらの値種別に役割を定義していないため、経由すべき役割層トークンが
+存在しないことに対応している。
+
+### `DESIGN.md` は整形しない
+
+`.prettierignore` で `DESIGN.md` を `oxfmt` の対象から外している。整形して upstream と差が出ると、
+正の更新をコピーし直すときの差分がノイズだらけになるためである（`oxfmt` は `.prettierignore` を
+既定の ignore-path として読む）。
+
+### プロジェクト固有 component は `DESIGN.md` のコピー側に足す
+
+正リポジトリが持つのは横断 component（`screen` / `link` / `icon` / `button` / `note` / `card` /
+`badge` / `input`）だけである。この画面が必要とする `appbar` / `tab` / `grid` / `heat-cell` /
+`shortage-cell` / `shift-bar` は、消費側であるこのコピーの `components` に足してある（本文の
+「プロジェクト固有 Components」節がその意味を持つ）。**正リポジトリへは戻さない。**
+
+### 色を `.svelte` に直書きしない
+
+セルの色のように値が連続的に見えるものも、生の色を計算しない。`src/lib/heatmap.ts` の
+`heatLevel` は人数を段（`0`〜`maxLevel`）へ写すだけで、色は
+`heat-cell-level-<n>-*` / `shortage-cell-level-<n>-*` トークンが持つ。`.svelte` は
+`data-level` 属性を当て、CSS 側の属性セレクタでトークンを引く。
+
+### フォーカスリングは触らない
+
+`outline: none` で消すことも、独自色へ塗り替えることもしない（`DESIGN.md` の Don't）。
+既定リングは UA が地とのコントラストを自動確保するが、変更した瞬間に WCAG 1.4.11 の
+3:1 の立証責任が作者へ移るためである。
+
+### light / dark
+
+`tokens.css` の `:root` が light を、`@media (prefers-color-scheme: dark)` の `:root` が dark を
+持ち、`:root { color-scheme: light dark; }` で UA 描画（フォーム部品・スクロールバー・
+フォーカスリング）も追従させている。theme を切り替える UI は持たない。
+
+### 文字色×地色を足すときは AA を検証する
+
+`DESIGN.md` は文字色×地色のペアに WCAG AA（4.5:1）を要求する。正リポジトリには
+`npm run check:contrast` があるが、配布されるのは `DESIGN.md` 1枚なのでこちらには無い。
+ペアを足す・変えるときは OKLCH を sRGB へ変換して比を出し、4.5 を下回らないことを確かめる
+（`disabled` は WCAG の inactive 例外で対象外）。
 
 ## D1 スキーマと初期化（工程2）
 
